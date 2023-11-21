@@ -2,6 +2,9 @@ const express = require('express');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('path');
+const qs = require('qs')
+
+const { expressHttpLogger } = require('./logger')
 
 
 const demoFLVPath = path.join(__dirname, '../test_files', 'sample_960x400_ocean_with_audio.flv' )
@@ -17,21 +20,18 @@ const contentTypes = {
 const PORT = 3000;
 
 const app = express();
+
+/* initial config */
 app.disable('x-powered-by');
 
 
-const myLogger = (req, res, next) => {
-  console.log('Logging middleware goes here')
-  return next();
-}
-
-app.use(express.urlencoded())
+app.use(express.urlencoded({extended: true}))
 app.use(express.json());
-app.use(myLogger)
+app.use(expressHttpLogger);
 
 
 app.get('/test', (req,res) => {
-  res.status(200).send('recieved!')
+  res.status(200).json('recieved!')
 })
 
 app.get("/video/:id", function (req, res) {
