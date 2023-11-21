@@ -3,12 +3,33 @@ import React from 'react'
 export default function App() {
     return (
       <div>
-        <h1 style={{display:"flex", alignItems:"center", justifyContent:"space-around"}}>Front End Proof of Concept</h1>
-        <hr/>
-        <div style={{display:"flex", alignItems:"center", justifyContent:"space-around"}}>We're putting a video player here</div>
-        <video width="620" controls src="https://archive.org/download/ElephantsDream/ed_hd.ogv" type="video/ogg" style={{display:"block", marginLeft:"auto", marginRight:"auto"}}>
-            
-        </video>
+        <ReactHeader />
+        <ReactBody />
+        <VideoDisplay />
+        
       </div>
     );
+  }
+
+
+  function ReactHeader(){return(
+    <h1 style={{display:"flex", alignItems:"center", justifyContent:"space-around"}}>Front End Proof of Concept</h1>
+    )
+  }
+  function ReactBody(){
+    return(
+      <div style={{display:"flex", alignItems:"center", justifyContent:"space-around"}}>We're putting a video player here</div>
+    )
+  }
+  function VideoDisplay(){
+    return(
+        <video width="620" controls 
+        src="https://archive.org/download/ElephantsDream/ed_hd.ogv" 
+        autoPlay
+        style={{
+        display:"block", 
+        marginLeft:"auto", 
+        marginRight:"auto"
+        }}></video>
+    )
   }
