@@ -1,5 +1,6 @@
 const chalk = require('chalk')
 const { objRepr } = require('./utils')
+
 const LOG_LEVELS = {
   silent: 0,
   error: 1,
@@ -83,14 +84,16 @@ const debug = (...args) => {
 };
 
 const expressHttpLogger = (req, res, next) => {
-  console.log(req.hostname)
-  const filteredHeaders = Object.keys()
+  const filteredHeaders = Object.assign({}, req.headers);
+  ignoreHeaders.forEach(header => {
+    delete filteredHeaders[header];
+  });
   httpLog(
     // `:${port}`, 
     chalk.bgWhiteBright.black(req.method), 
     req.originalUrl,
-    req.query,
-    `headers: ${objRepr(req.headers.filter((k,v) => !ignoreHeaders.includes(k)))}`
+    objRepr(req.query)? `query: ${objRepr(req.query)}`: '',
+    objRepr(filteredHeaders) ? `headers: ${objRepr(filteredHeaders)}` : ''
     )
   return next()
 };
