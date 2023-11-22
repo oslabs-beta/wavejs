@@ -15,7 +15,7 @@ const contentTypes = {
 };
 const PORT = 3000;
 
-const expressServer = (session) => {
+const expressServer = (session, endpoint) => {
   
   const app = express();
 
@@ -26,18 +26,15 @@ const expressServer = (session) => {
   app.use(express.json());
   app.use(expressHttpLogger);
 
-  app.get('/test', (req, res) => {
-    res.status(200).json('recieved!');
-  });
-
   app.get('/streams', (req, res) => {
     res.status(200).json(Object.fromEntries(session.streams));
   });
 
   //get playlist route
-  app.get('/video/:streamId/:m3u8', (req, res) => {
+  app.get(`/${endpoint}/:streamId/:m3u8`, (req, res) => {
     //this is the area where we need to connect fmpg to the server
-    const videoPath = `${buildHLSDirPath(req.params.streamId)}/${req.params.m3u8}`
+    const stream = session.getStream(req.params.streamId);
+    const videoPath = `${stream.address}/${req.params.m3u8}`
    //'application/vnd.apple.mpegurl'
     res.status(200).set('Content-Type', contentTypes['.m3u8'])
     fs.createReadStream(videoPath).pipe(res);

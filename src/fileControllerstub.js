@@ -14,13 +14,10 @@ const buildHLSDir = (streamId) => {
   });
 };
 
-const buildHLSSegmentPath = (streamId, segment) => path.join(buildHLSDirPath(streamId), `manifest${segment}.ts`)
-
-console.log(buildHLSPlaylistPath('test'));
 
 module.exports = {
   buildHLSPlaylistPath,
   buildHLSDirPath,
   buildHLSDir,
-  buildHLSSegmentPath
+
 };
