@@ -24,12 +24,15 @@ export default function App() {
   function VideoDisplay(){
     return(
         <video width="620" controls 
-        src="https://archive.org/download/ElephantsDream/ed_hd.ogv" 
+        
         autoPlay
         style={{
         display:"block", 
         marginLeft:"auto", 
         marginRight:"auto"
-        }}></video>
+        }}>
+          <source src="http://localhost:3000/video/test/manifest.m3u8" type="application/x-mpegURL" />
+          {/* <source src="https://archive.org/download/ElephantsDream/ed_hd.ogv" type="video/ogg" /> */}
+        </video>
     )
   }
