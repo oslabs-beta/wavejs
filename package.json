@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --config webpack.config.js",
     "dev-server": "nodemon ./frontend/server.js localhost 8000",
-    "dev-client": "webpack-dev-server --port 3000"
+    "dev-client": "webpack-dev-server --port 3030"
   },
   "author": "",
   "license": "ISC",
@@ -33,6 +33,8 @@
     "axios": "^1.6.2",
     "chalk": "^4",
     "express": "^4.18.2",
+    "ffmpeg": "^0.0.4",
+    "fluent": "^0.13.0",
     "fluent-ffmpeg": "^2.1.2",
     "lodash": "^4.17.21",
     "m3u8stream": "^0.8.6",

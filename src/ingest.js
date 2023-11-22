@@ -1,8 +1,9 @@
 // Require the ffmpeg library:
 const ffmpeg = require('fluent-ffmpeg');
 //const logger = require('./logger')
-const { buildHLSPlaylistPath, buildHLSDir } = require('./fileControllerstub');
-
+const net = require('node:net');
+const { buildHLSPlaylistPath, buildHLSDir } = require('./fileController');
+const session = require('./session');
 // console.log(path.join(__dirname,'../VideoFiles'))
 const buildStream = (streamId, endpoint, session) => {
   const stream = ffmpeg(`rtmp://localhost/${endpoint}/${streamId}`, { timeout: 432000 })
