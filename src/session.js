@@ -1,4 +1,4 @@
-const { buildHLSPlaylistPath } = require('./fileControllerstub');
+const { buildHLSDirPath } = require('./fileControllerstub');
 
 const session = {
   streams: new Map(),
@@ -14,9 +14,13 @@ const session = {
 session.addStream = function (streamId, active = true) {
   this.streams.set(streamId, {
     active,
-    address: buildHLSPlaylistPath(streamId),
+    address: buildHLSDirPath(streamId),
   });
   return;
+};
+
+session.getStream = function (streamId) {
+  return this.streams.get(streamId);
 };
 
 session.setActive = function (streamId, active = false) {

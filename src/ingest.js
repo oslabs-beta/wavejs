@@ -5,8 +5,8 @@ const net = require('node:net');
 const { buildHLSPlaylistPath, buildHLSDir } = require('./fileController');
 const session = require('./session');
 // console.log(path.join(__dirname,'../VideoFiles'))
-const buildStream = (streamId) => {
-  const stream = ffmpeg('rtmp://localhost/live', { timeout: 432000 })
+const buildStream = (streamId, endpoint, session) => {
+  const stream = ffmpeg(`rtmp://localhost/${endpoint}/${streamId}`, { timeout: 432000 })
     // set video bitrate
     .videoBitrate(1200)
     // set h264 preset
@@ -43,10 +43,13 @@ const buildStream = (streamId) => {
     // event handler for end of stream
     .on('end', function () {
       console.log('Success! Your live stream has been saved.');
+      session.setActive(streamId, false)
+      process.exit(0);
     })
     // error handling
     .on('error', function (err) {
       console.log('An error occurred: ' + err.message);
+      session.setActive(streamId, false)
       process.exit(0);
     })
     .on('stderr', function (stderrLine) {
@@ -54,6 +57,7 @@ const buildStream = (streamId) => {
     })
     .on('connection', () => {
       console.log('Someone Connected!');
+      session.setActive(streamId, true)
     });
   return stream;
 };
@@ -63,53 +67,13 @@ const buildStream = (streamId) => {
 
 // Saves the file locally
 //stream.save('../videoFiles/test.m3u8');
-const portCheck = (host, port, timeout = 400) => {
-  return new Promise((resolve, reject) => {
-    const socket = new net.Socket();
-    let status = null;
-    let error = null;
-    let connectionRefused = false;
-    socket.on('connect', () => {
-      console.log('portcheck: connect');
-      status = 'open';
-      socket.destroy();
-    });
-    socket.setTimeout(timeout);
-    socket.on('timeout', () => {
-      console.log('portcheck: timeout');
-      status = 'in-use';
-      socket.destroy();
-    });
-    socket.on('error', (err) => {
-      console.log('portcheck: error');
-      // if (err.code !== 'ECONNREFUSED') {
-      //   error = err
-      // } else {
-      //   connectionRefused = true
-      // }
-      error = err;
-      status = 'in-use';
-    });
-    socket.on('close', (err) => {
-      if (err && !connectionRefused) {
-        error = error || err;
-      } else {
-        error = null;
-      }
-      console.log('portcheck: close');
-      return resolve([status, error, connectionRefused]);
-    });
-    socket.connect({ port: port });
-  });
-};
 
-// let [status, error] = portCheck('tcp://localhost', 1935)
 
-const main = async () => {
-  console.log('Stream starting...');
-  buildHLSDir('test');
-  const stream = buildStream('test');
-  session.addStream('test');
+const ffmpegServer =  (session, streamId, endpoint) => {
+  console.log(`🎥 FFmpeg Server starting at rtmp://localhost/${endpoint}/${streamId}`);
+  buildHLSDir(streamId);
+  const stream = buildStream(streamId, endpoint, session);
+  session.addStream(streamId);
   stream.run();
 };
-main();
+module.exports = ffmpegServer;
