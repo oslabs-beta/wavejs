@@ -2,7 +2,7 @@
 const ffmpeg = require('fluent-ffmpeg');
 //const logger = require('./logger')
 const net = require('node:net');
-const { buildHLSPlaylistPath, buildHLSDir } = require('./fileControllerstub');
+const { buildHLSPlaylistPath, buildHLSDir } = require('./fileController');
 const session = require('./session');
 // console.log(path.join(__dirname,'../VideoFiles'))
 const buildStream = (streamId) => {
