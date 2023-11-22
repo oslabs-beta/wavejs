@@ -3,7 +3,7 @@ const ffmpeg = require('fluent-ffmpeg');
 //const logger = require('./logger')
 const net = require('node:net');
 const { buildHLSPlaylistPath, buildHLSDir } = require('./fileControllerstub');
-const session = require('./session');
+
 // console.log(path.join(__dirname,'../VideoFiles'))
 const buildStream = (streamId) => {
   const stream = ffmpeg('rtmp://localhost/live', { timeout: 432000 })
@@ -105,11 +105,12 @@ const portCheck = (host, port, timeout = 400) => {
 
 // let [status, error] = portCheck('tcp://localhost', 1935)
 
-const main = async () => {
+const main =  (session) => {
   console.log('Stream starting...');
   buildHLSDir('test');
   const stream = buildStream('test');
   session.addStream('test');
+  console.log(session.streams)
   stream.run();
 };
-main();
+module.exports = main;
