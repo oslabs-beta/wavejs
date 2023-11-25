@@ -1,4 +1,4 @@
-const { buildHLSDirPath } = require('./fileControllerstub');
+const { buildHLSDirPath } = require('./fileController');
 
 const session = {
   streams: new Map(),

@@ -21,10 +21,15 @@ const configureVideoAudio = (updatedSettings) => {
   ffmpegServer.configureVideoAudio(updatedSettings);
 };
 
+// start express server:
+const startExpressServer = (session, HTTP_ENDPOINT) => {
+  expressServer.createExpressApp(session, HTTP_ENDPOINT);
+};
+
 // start express & ffmpeg servers:
-const startServers = () => {
+const startServers = (session, HTTP_ENDPOINT) => {
   startFfmpegServer();
-  expressServer(session, HTTP_ENDPOINT);
+  startExpressServer(session, HTTP_ENDPOINT);
 };
 
 startServers();
