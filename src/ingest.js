@@ -15,8 +15,8 @@ const videoAudioConfig = {
   audioBitrate: '256k',
   audioCodec: 'aac',
   audioChannels: 2,
-  hlsTimeDuration: ['-hls_time', '8'],
-  hlsListSize: ['-hls_list_size', '0'],
+  hlsTimeDuration: ['-hls_time', '1'],
+  hlsListSize: ['-hls_list_size', '1'],
 };
 
 const ffmpegServer = {};
