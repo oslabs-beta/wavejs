@@ -2,9 +2,12 @@ const RtmpPacket = require('./RtmpPacket');
 const { config, state } = require('./_magic');
 const rtmpActions = require('./rtmp_actions');
 const AV = require('./av');
-const utils = require('./rtmp_utils')
-const session = require('./simpleOut');
-const streamStorage = require('./simpleOut');
+const AMF = require('./node_core_amf');
+const utils = require('./rtmp_utils');
+
+
+
+let streamId = 'test'
 
 const readRtmpChunk = (data, bytesRead, bytes, stopCb) => {
   //initialize size, offset, timestamp
@@ -226,7 +229,7 @@ const rtmpHandler = () => {
     case config.type.event:
       return 0 === rtmpEventHandler() ? -1 : 0;
     case config.type.audio:
-      //return this.rtmpAudioHandler();
+      return rtmpAudioHandler();
     case config.type.video:
       //return this.rtmpVideoHandelr();
     case config.type.flexMessage:
@@ -235,10 +238,11 @@ const rtmpHandler = () => {
     case config.type.flexStream: //AMF3
     case config.type.data: //AMF0
       //return this.rtmpDataHandler()
+      
   }
 };
 
-const rtmpControlHander = (config, state) => {
+const rtmpControlHandler = (config, state) => {
   let payload = state.parserPacket.payload;
   switch (state.parserPacket.header.type) {
     case config.type.setChunkSize:
@@ -297,54 +301,68 @@ const rtmpAudioHandler = (config, state) => {
   }
 
 //AAC, OPUS
-if ((sound_format == 10 || sound_format == 13) && payload[1] == 0) {
-  //cache aac sequence header
-  state.isFirstAudioReceived = true;
-  state.audio.aacSequenceHeader = Buffer.alloc(payload.length);
-  payload.copy(state.audio.aacSequenceHeader);
-  if (sound_format == 10) {
-    let info = AV.readAACSpecificConfig(state.audio.aacSequenceHeader);
-    state.audio.profileName = AV.getAACProfileName(info);
-    state.audio.sampleRate = info.sample_rate;
-    state.audio.channels = info.channels;
-  } else {
-    state.audio.sampleRate = 48000;
-    state.audio.channels = payload[11];
+  if ((sound_format == 10 || sound_format == 13) && payload[1] == 0) {
+    //cache aac sequence header
+    state.isFirstAudioReceived = true;
+    state.audio.aacSequenceHeader = Buffer.alloc(payload.length);
+    payload.copy(state.audio.aacSequenceHeader);
+    if (sound_format == 10) {
+      let info = AV.readAACSpecificConfig(state.audio.aacSequenceHeader);
+      state.audio.profileName = AV.getAACProfileName(info);
+      state.audio.sampleRate = info.sample_rate;
+      state.audio.channels = info.channels;
+    } else {
+      state.audio.sampleRate = 48000;
+      state.audio.channels = payload[11];
+    }
+    //logging goes here
+    // Logger.log(
+    //   `[rtmp publish] Handle audio. id=${this.id} streamPath=${this.publishStreamPath
+    //   } sound_format=${sound_format} sound_type=${sound_type} sound_size=${sound_size} sound_rate=${sound_rate} codec_name=${this.audioCodecName} ${this.audioSamplerate} ${this.audioChannels
+    //   }ch`
+    // );
   }
-  //logging goes here
-  // Logger.log(
-  //   `[rtmp publish] Handle audio. id=${this.id} streamPath=${this.publishStreamPath
-  //   } sound_format=${sound_format} sound_type=${sound_type} sound_size=${sound_size} sound_rate=${sound_rate} codec_name=${this.audioCodecName} ${this.audioSamplerate} ${this.audioChannels
-  //   }ch`
-  // );
-}
 
-let packet = RtmpPacket.create();
-packet.header.fmt = config.chunkType.bytes11;
-packet.header.cid = config.channel.audio;
-packet.header.type = config.type.audio;
-packet.payload = payload;
-packet.header.length = packet.payload.length;
-packet.header.timestamp = state.parserPacket.clock;
-let rtmpChunks = utils.rtmpChunksCreate(packet);
-// IMPORTANT: do I need to make an FLV session here??
-//let flvTag = NodeFlvSession.createFlvTag(packet);
+  let packet = RtmpPacket.create();
+  packet.header.fmt = config.chunkType.bytes11;
+  packet.header.cid = config.channel.audio;
+  packet.header.type = config.type.audio;
+  packet.payload = payload;
+  packet.header.length = packet.payload.length;
+  packet.header.timestamp = state.parserPacket.clock;
+  let rtmpChunks = utils.rtmpChunksCreate(packet);
+  // IMPORTANT: do I need to make an FLV session here??
+  //let flvTag = NodeFlvSession.createFlvTag(packet);
 
-//cache gop
-if (state.rtmpGopCacheQueue != null) {
-  if (state.audio.aacSequenceHeader != null && payload[1] === 0) {
-    //skip aac sequence header
-  } else {
-    state.rtmpGopCacheQueue.add(rtmpChunks);
-    //IMPORTANT: How important is FLV sessions to this?
-    //this.flvGopCacheQueue.add(flvTag);
+  //cache gop
+  if (state.rtmpGopCacheQueue != null) {
+    if (state.audio.aacSequenceHeader != null && payload[1] === 0) {
+      //skip aac sequence header
+    } else {
+      state.rtmpGopCacheQueue.add(rtmpChunks);
+      //IMPORTANT: How important is FLV sessions to this?
+      //this.flvGopCacheQueue.add(flvTag);
+    }
   }
-}
-if (state.streamSession === null) {
-    state.streamStorage = streamStorage.initializeStream()
-    rtmpChunks.writeUInt32LE(streamId, 8); //this needs to come from the socket
-    streamStorage.writeStreamAudio(rtmpChunks)
-}
+  //our stream handler
+  if (state.streamStorage.get(streamId) === undefined) {
+    state.streamStorage.initializeStream(streamId) //IMPORTANT this has to come 
+  }
+  let streamStore = state.streamStorage.retrieveStream(streamId)
+  if (streamStore.numPlayCache === 0) {
+    streamStore.streamData.cork();
+  }
+  rtmpChunks.writeUInt32LE(streamId, 8); //this needs to come from the socket
+  streamStore.streamData.write(rtmpChunks);
+  
+  streamStore.numPlayCache++;
+  
+  if (streamStore.numPlayCache === 10) {
+    process.nextTick(()=> streamStore.StreamData.uncork());
+    streamStore.numPlayCache = 0;
+  } 
+
+
 /* HANDLE PLAYERS
 for (let playerId of this.players) {
   let playerSession = context.sessions.get(playerId);
@@ -373,3 +391,553 @@ for (let playerId of this.players) {
 
 }*/
 };
+
+const rtmpVideoHandler = (config, state) => {
+  let payload = state.parserPacket.payload.slice(0, state.parserPacket.header.length);
+  let isExHeader = (payload[0] >> 4 & 0b1000) !== 0;
+  let frame_type = payload[0] >> 4 & 0b0111;
+  let codec_id = payload[0] & 0x0f;
+  let packetType = payload[0] & 0x0f;
+  if (isExHeader) {
+    if (packetType == config.packetType.metadata) {
+      //empty in nms
+    }
+    else if (packetType == config.packetType.sequenceEnd) {
+      //empty in nms
+    }
+    let FourCC = payload.subarray(1, 5);
+    if (FourCC.compare(config.fourCC.HEVC) == 0) {
+      codec_id = 12;
+      if (packetType == config.packetType.sequenceStart) {
+        payload[0] = 0x1c;
+        payload[1] = 0;
+        payload[2] = 0;
+        payload[3] = 0;
+        payload[4] = 0;
+      } else if (packetType == config.packetType.codedFrames || packetType == config.packetType.codedFramesX) {
+        if (packetType == config.packetType.codedFrames) {
+          payload = payload.subarray(3);
+        } else {
+          payload[2] = 0;
+          payload[3] = 0;
+          payload[4] = 0;
+        }
+        payload[0] = frame_type << 4 | 0x0c;
+        payload[1] = 1;
+      }
+    } else if (FourCC.compare(config.fourCC.AV1) == 0) {
+      codec_id = 13;
+      if (packetType == config.packetType.sequenceStart) {
+        payload[0] = 0x1d;
+        payload[1] = 0;
+        payload[2] = 0;
+        payload[3] = 0;
+        payload[4] = 0;
+        // Logger.log("PacketTypeSequenceStart", payload.subarray(0, 16));
+      } else if (packetType == config.packetType.MPEG2TSSequenceStart) {
+        // Logger.log("PacketTypeMPEG2TSSequenceStart", payload.subarray(0, 16));
+      } else if (packetType == config.packetType.codedFrames) {
+        // Logger.log("PacketTypeCodedFrames", payload.subarray(0, 16));
+        payload[0] = frame_type << 4 | 0x0d;
+        payload[1] = 1;
+        payload[2] = 0;
+        payload[3] = 0;
+        payload[4] = 0;
+      }
+    } else {
+      //Logger.log(`unsupported extension header`);
+      //logging goes here
+      return;
+    }
+  }
+
+  if (state.video.fps === 0) {
+    if (state.video.count++ === 0) {
+      setTimeout(() => {
+        state.video.fps = Math.ceil(state.video.count / 5);
+      }, 5000);
+    }
+  }
+
+  if (codec_id == 7 || codec_id == 12 || codec_id == 13) {
+    //cache avc sequence header
+    if (frame_type == 1 && payload[1] == 0) {
+      state.video.avcSequenceHeader = Buffer.alloc(payload.length);
+      payload.copy(state.video.avcSequenceHeader);
+      let info = AV.readAVCSpecificConfig(state.avcSequenceHeader);
+      state.video.width = info.width;
+      state.video.height = info.height;
+      state.video.profileName = AV.getAVCProfileName(info);
+      state.video.level = info.level;
+      //Logger.log(`[rtmp publish] avc sequence header`,this.avcSequenceHeader);
+    }
+  }
+
+  if (state.video.codec == 0) {
+    state.video.codec = codec_id;
+    state.video.codecName = config.video.codecName[codec_id];
+    //logging goes here
+    // Logger.log(
+    //   `[rtmp publish] Handle video. id=${this.id} streamPath=${this.publishStreamPath} frame_type=${frame_type} codec_id=${codec_id} codec_name=${this.videoCodecName} ${this.videoWidth
+    //   }x${this.videoHeight}`
+    // );
+  }
+
+  let packet = RtmpPacket.create();
+  packet.header.fmt = config.chunkType.bytes11;
+  packet.header.cid = config.channel.video;
+  packet.header.type = config.type.video;
+  packet.payload = payload;
+  packet.header.length = packet.payload.length;
+  packet.header.timestamp = state.parserPacket.clock;
+  let rtmpChunks = utils.rtmpChunksCreate(packet);
+  //let flvTag = NodeFlvSession.createFlvTag(packet);
+
+  //cache gop
+  if (state.rtmpGopCacheQueue != null) {
+    if (frame_type == 1) {
+      state.rtmpGopCacheQueue.clear();
+      state.flvGopCacheQueue.clear();
+    }
+    if ((codec_id == 7 || codec_id == 12 || codec_id == 13) && frame_type == 1 && payload[1] == 0) {
+      //skip avc sequence header
+    } else {
+      state.rtmpGopCacheQueue.add(rtmpChunks);
+      //this.flvGopCacheQueue.add(flvTag);
+    }
+  }
+  //our stream handler
+  if (state.streamStorage.get(streamId) === undefined) {
+    state.streamStorage.initializeStream(streamId) //IMPORTANT this has to come first
+  }
+  let streamStore = state.streamStorage.retrieveStream(streamId)
+  if (streamStore.numPlayCache === 0) {
+    streamStore.streamData.cork();
+  }
+  rtmpChunks.writeUInt32LE(streamId, 8); //this needs to come from the socket
+  streamStore.streamData.write(rtmpChunks);
+  
+  streamStore.numPlayCache++;
+  
+  if (streamStore.numPlayCache === 10) {
+    process.nextTick(()=> streamStore.StreamData.uncork());
+    streamStore.numPlayCache = 0;
+  } 
+
+  // // Logger.log(rtmpChunks);
+  // for (let playerId of this.players) {
+  //   let playerSession = context.sessions.get(playerId);
+
+  //   if (playerSession.numPlayCache === 0) {
+  //     playerSession.res.cork();
+  //   }
+
+  //   if (playerSession instanceof NodeRtmpSession) {
+  //     if (playerSession.isStarting && playerSession.isPlaying && !playerSession.isPause && playerSession.isReceiveVideo) {
+  //       rtmpChunks.writeUInt32LE(playerSession.playStreamId, 8);
+  //       playerSession.res.write(rtmpChunks);
+  //     }
+  //   } else if (playerSession instanceof NodeFlvSession) {
+  //     playerSession.res.write(flvTag, null, e => {
+  //       //websocket will throw a error if not set the cb when closed
+  //     });
+  //   }
+
+  //   playerSession.numPlayCache++;
+
+  //   if (playerSession.numPlayCache === 10) {
+  //     process.nextTick(() => playerSession.res.uncork());
+  //     playerSession.numPlayCache = 0;
+  //   }
+  // }
+};
+
+const rtmpDataHandler = (config, state) => {
+  let offset = state.parserPacket.header.type === config.type.flexStream ? 1 : 0;
+  let payload = state.parserPacket.payload.slice(offset, state.parserPacket.header.length);
+  let dataMessage = AMF.decodeAmf0Data(payload);
+  switch (dataMessage.cmd) {
+    case '@setDataFrame':
+      if (dataMessage.dataObj) {
+        state.audio.sampleRate = dataMessage.dataObj.audiosamplerate;
+        state.audio.channels = dataMessage.dataObj.stereo ? 2 : 1;
+        state.video.width = dataMessage.dataObj.width;
+        state.video.height = dataMessage.dataObj.height;
+        state.video.fps = dataMessage.dataObj.framerate;
+      }
+
+      let opt = {
+        cmd: 'onMetaData',
+        dataObj: dataMessage.dataObj
+      };
+      state.metaData = AMF.encodeAmf0Data(opt);
+
+      let packet = RtmpPacket.create();
+      packet.header.fmt = config.chunkType.bytes11;
+      packet.header.cid = config.channel.data;
+      packet.header.type = config.type.data;
+      packet.payload = state.metaData;
+      packet.header.length = packet.payload.length;
+      let rtmpChunks = utils.rtmpChunksCreate(packet);
+      //let flvTag = NodeFlvSession.createFlvTag(packet);
+
+      if (state.streamStorage.get(streamId) === undefined) {
+        state.streamStorage.initializeStream(streamId) //IMPORTANT this has to come first
+      }
+      let streamStore = state.streamStorage.retrieveStream(streamId)
+      rtmpChunks.writeUInt32LE(streamId, 8); //this needs to come from the socket
+      streamStore.streamData.write(rtmpChunks);
+  
+
+      // for (let playerId of this.players) {
+      //   let playerSession = context.sessions.get(playerId);
+      //   if (playerSession instanceof NodeRtmpSession) {
+      //     if (playerSession.isStarting && playerSession.isPlaying && !playerSession.isPause) {
+      //       rtmpChunks.writeUInt32LE(playerSession.playStreamId, 8);
+      //       playerSession.socket.write(rtmpChunks);
+      //     }
+      //   } else if (playerSession instanceof NodeFlvSession) {
+      //     playerSession.res.write(flvTag, null, e => {
+      //       //websocket will throw a error if not set the cb when closed
+      //     });
+      //   }
+      // }
+      break;
+  }
+}
+
+const rtmpInvokeHandler = (config, state) => {
+  let offset = state.parserPacket.header.type === config.type.flexMessage ? 1 : 0;
+  let payload = state.parserPacket.payload.slice(offset, state.parserPacket.header.length);
+  let invokeMessage = AMF.decodeAmf0Cmd(payload);
+  // Logger.log(invokeMessage);
+  switch (invokeMessage.cmd) {
+    case 'connect':
+      this.onConnect(invokeMessage);
+      break;
+    case 'releaseStream':
+      break;
+    case 'FCPublish':
+      break;
+    case 'createStream':
+      this.onCreateStream(invokeMessage);
+      break;
+    case 'publish':
+      this.onPublish(invokeMessage);
+      break;
+    case 'play':
+      this.onPlay(invokeMessage);
+      break;
+    case 'pause':
+      this.onPause(invokeMessage);
+      break;
+    case 'FCUnpublish':
+      break;
+    case 'deleteStream':
+      this.onDeleteStream(invokeMessage);
+      break;
+    case 'closeStream':
+      this.onCloseStream();
+      break;
+    case 'receiveAudio':
+      this.onReceiveAudio(invokeMessage);
+      break;
+    case 'receiveVideo':
+      this.onReceiveVideo(invokeMessage);
+      break;
+  }
+}
+
+const onConnect = (invokeMessage, state, config) => {
+  invokeMessage.cmdObj.app = invokeMessage.cmdObj.app.replace('/', ''); //fix jwplayer
+  //context.nodeEvent.emit('preConnect', this.id, invokeMessage.cmdObj);
+  if (!state.status.isStarting) {
+    return;
+  }
+  
+  this.connectCmdObj = invokeMessage.cmdObj;
+  this.appname = invokeMessage.cmdObj.app;
+  this.objectEncoding = invokeMessage.cmdObj.objectEncoding != null ? invokeMessage.cmdObj.objectEncoding : 0;
+  this.connectTime = new Date();
+  this.startTimestamp = Date.now();
+  this.pingInterval = setInterval(() => {
+    this.sendPingRequest();
+  }, this.pingTime);
+  this.sendWindowACK(5000000);
+  this.setPeerBandwidth(5000000, 2);
+  this.setChunkSize(this.outChunkSize);
+  this.respondConnect(invokeMessage.transId);
+  this.bitrateCache = {
+    intervalMs: 1000,
+    last_update: this.startTimestamp,
+    bytes: 0,
+  };
+  Logger.log(`[rtmp connect] id=${this.id} ip=${this.ip} app=${this.appname} args=${JSON.stringify(invokeMessage.cmdObj)}`);
+  context.nodeEvent.emit('postConnect', this.id, invokeMessage.cmdObj);
+}
+
+onCreateStream(invokeMessage) {
+  this.respondCreateStream(invokeMessage.transId);
+}
+
+onPublish(invokeMessage) {
+  if (typeof invokeMessage.streamName !== 'string') {
+    return;
+  }
+  this.publishStreamPath = '/' + this.appname + '/' + invokeMessage.streamName.split('?')[0];
+  this.publishArgs = QueryString.parse(invokeMessage.streamName.split('?')[1]);
+  this.publishStreamId = this.parserPacket.header.stream_id;
+  context.nodeEvent.emit('prePublish', this.id, this.publishStreamPath, this.publishArgs);
+  if (!this.isStarting) {
+    return;
+  }
+
+  if (this.config.auth && this.config.auth.publish && !this.isLocal) {
+    let results = NodeCoreUtils.verifyAuth(this.publishArgs.sign, this.publishStreamPath, this.config.auth.secret);
+    if (!results) {
+      Logger.log(`[rtmp publish] Unauthorized. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId} sign=${this.publishArgs.sign} `);
+      this.sendStatusMessage(this.publishStreamId, 'error', 'NetStream.publish.Unauthorized', 'Authorization required.');
+      return;
+    }
+  }
+
+  if (context.publishers.has(this.publishStreamPath)) {
+    this.reject();
+    Logger.log(`[rtmp publish] Already has a stream. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId}`);
+    this.sendStatusMessage(this.publishStreamId, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
+  } else if (this.isPublishing) {
+    Logger.log(`[rtmp publish] NetConnection is publishing. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId}`);
+    this.sendStatusMessage(this.publishStreamId, 'error', 'NetStream.Publish.BadConnection', 'Connection already publishing');
+  } else {
+    Logger.log(`[rtmp publish] New stream. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId}`);
+    context.publishers.set(this.publishStreamPath, this.id);
+    this.isPublishing = true;
+
+    this.sendStatusMessage(this.publishStreamId, 'status', 'NetStream.Publish.Start', `${this.publishStreamPath} is now published.`);
+    for (let idlePlayerId of context.idlePlayers) {
+      let idlePlayer = context.sessions.get(idlePlayerId);
+      if (idlePlayer && idlePlayer.playStreamPath === this.publishStreamPath) {
+        idlePlayer.onStartPlay();
+        context.idlePlayers.delete(idlePlayerId);
+      }
+    }
+    context.nodeEvent.emit('postPublish', this.id, this.publishStreamPath, this.publishArgs);
+  }
+}
+
+onPlay(invokeMessage) {
+  if (typeof invokeMessage.streamName !== 'string') {
+    return;
+  }
+  this.playStreamPath = '/' + this.appname + '/' + invokeMessage.streamName.split('?')[0];
+  this.playArgs = QueryString.parse(invokeMessage.streamName.split('?')[1]);
+  this.playStreamId = this.parserPacket.header.stream_id;
+  context.nodeEvent.emit('prePlay', this.id, this.playStreamPath, this.playArgs);
+
+  if (!this.isStarting) {
+    return;
+  }
+
+  if (this.config.auth && this.config.auth.play && !this.isLocal) {
+    let results = NodeCoreUtils.verifyAuth(this.playArgs.sign, this.playStreamPath, this.config.auth.secret);
+    if (!results) {
+      Logger.log(`[rtmp play] Unauthorized. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} sign=${this.playArgs.sign}`);
+      this.sendStatusMessage(this.playStreamId, 'error', 'NetStream.play.Unauthorized', 'Authorization required.');
+      return;
+    }
+  }
+
+  if (this.isPlaying) {
+    Logger.log(`[rtmp play] NetConnection is playing. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} `);
+    this.sendStatusMessage(this.playStreamId, 'error', 'NetStream.Play.BadConnection', 'Connection already playing');
+  } else {
+    this.respondPlay();
+  }
+
+  if (context.publishers.has(this.playStreamPath)) {
+    this.onStartPlay();
+  } else {
+    Logger.log(`[rtmp play] Stream not found. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId}`);
+    this.isIdling = true;
+    context.idlePlayers.add(this.id);
+  }
+}
+
+onStartPlay() {
+  let publisherId = context.publishers.get(this.playStreamPath);
+  let publisher = context.sessions.get(publisherId);
+  let players = publisher.players;
+  players.add(this.id);
+
+  if (publisher.metaData != null) {
+    let packet = RtmpPacket.create();
+    packet.header.fmt = RTMP_CHUNK_TYPE_0;
+    packet.header.cid = RTMP_CHANNEL_DATA;
+    packet.header.type = RTMP_TYPE_DATA;
+    packet.payload = publisher.metaData;
+    packet.header.length = packet.payload.length;
+    packet.header.stream_id = this.playStreamId;
+    let chunks = this.rtmpChunksCreate(packet);
+    this.socket.write(chunks);
+  }
+
+  if (publisher.audioCodec === 10 || publisher.audioCodec === 13) {
+    let packet = RtmpPacket.create();
+    packet.header.fmt = RTMP_CHUNK_TYPE_0;
+    packet.header.cid = RTMP_CHANNEL_AUDIO;
+    packet.header.type = RTMP_TYPE_AUDIO;
+    packet.payload = publisher.aacSequenceHeader;
+    packet.header.length = packet.payload.length;
+    packet.header.stream_id = this.playStreamId;
+    let chunks = this.rtmpChunksCreate(packet);
+    this.socket.write(chunks);
+  }
+
+  if (publisher.videoCodec === 7 || publisher.videoCodec === 12 || publisher.videoCodec === 13) {
+    let packet = RtmpPacket.create();
+    packet.header.fmt = RTMP_CHUNK_TYPE_0;
+    packet.header.cid = RTMP_CHANNEL_VIDEO;
+    packet.header.type = RTMP_TYPE_VIDEO;
+    packet.payload = publisher.avcSequenceHeader;
+    packet.header.length = packet.payload.length;
+    packet.header.stream_id = this.playStreamId;
+    let chunks = this.rtmpChunksCreate(packet);
+    this.socket.write(chunks);
+  }
+
+  if (publisher.rtmpGopCacheQueue != null) {
+    for (let chunks of publisher.rtmpGopCacheQueue) {
+      chunks.writeUInt32LE(this.playStreamId, 8);
+      this.socket.write(chunks);
+    }
+  }
+
+  this.isIdling = false;
+  this.isPlaying = true;
+  context.nodeEvent.emit('postPlay', this.id, this.playStreamPath, this.playArgs);
+  Logger.log(`[rtmp play] Join stream. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} `);
+}
+
+onPause(invokeMessage) {
+  this.isPause = invokeMessage.pause;
+  let c = this.isPause ? 'NetStream.Pause.Notify' : 'NetStream.Unpause.Notify';
+  let d = this.isPause ? 'Paused live' : 'Unpaused live';
+  Logger.log(`[rtmp play] ${d} stream. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} `);
+  if (!this.isPause) {
+    this.sendStreamStatus(STREAM_BEGIN, this.playStreamId);
+    if (context.publishers.has(this.playStreamPath)) {
+      //fix ckplayer
+      let publisherId = context.publishers.get(this.playStreamPath);
+      let publisher = context.sessions.get(publisherId);
+      if (publisher.audioCodec === 10 || publisher.audioCodec === 13) {
+        let packet = RtmpPacket.create();
+        packet.header.fmt = RTMP_CHUNK_TYPE_0;
+        packet.header.cid = RTMP_CHANNEL_AUDIO;
+        packet.header.type = RTMP_TYPE_AUDIO;
+        packet.payload = publisher.aacSequenceHeader;
+        packet.header.length = packet.payload.length;
+        packet.header.stream_id = this.playStreamId;
+        packet.header.timestamp = publisher.parserPacket.clock; // ?? 0 or clock
+        let chunks = this.rtmpChunksCreate(packet);
+        this.socket.write(chunks);
+      }
+      if (publisher.videoCodec === 7 || publisher.videoCodec === 12 || publisher.videoCodec === 13) {
+        let packet = RtmpPacket.create();
+        packet.header.fmt = RTMP_CHUNK_TYPE_0;
+        packet.header.cid = RTMP_CHANNEL_VIDEO;
+        packet.header.type = RTMP_TYPE_VIDEO;
+        packet.payload = publisher.avcSequenceHeader;
+        packet.header.length = packet.payload.length;
+        packet.header.stream_id = this.playStreamId;
+        packet.header.timestamp = publisher.parserPacket.clock; // ?? 0 or clock
+        let chunks = this.rtmpChunksCreate(packet);
+        this.socket.write(chunks);
+      }
+    }
+  } else {
+    this.sendStreamStatus(STREAM_EOF, this.playStreamId);
+  }
+  this.sendStatusMessage(this.playStreamId, c, d);
+}
+
+onReceiveAudio(invokeMessage) {
+  this.isReceiveAudio = invokeMessage.bool;
+  Logger.log(`[rtmp play] receiveAudio=${this.isReceiveAudio} id=${this.id} `);
+}
+
+onReceiveVideo(invokeMessage) {
+  this.isReceiveVideo = invokeMessage.bool;
+  Logger.log(`[rtmp play] receiveVideo=${this.isReceiveVideo} id=${this.id} `);
+}
+
+onCloseStream() {
+  //red5-publisher
+  let closeStream = { streamId: this.parserPacket.header.stream_id };
+  this.onDeleteStream(closeStream);
+}
+
+onDeleteStream(invokeMessage) {
+  if (invokeMessage.streamId == this.playStreamId) {
+    if (this.isIdling) {
+      context.idlePlayers.delete(this.id);
+      this.isIdling = false;
+    } else {
+      let publisherId = context.publishers.get(this.playStreamPath);
+      if (publisherId != null) {
+        context.sessions.get(publisherId).players.delete(this.id);
+      }
+      context.nodeEvent.emit('donePlay', this.id, this.playStreamPath, this.playArgs);
+      this.isPlaying = false;
+    }
+    Logger.log(`[rtmp play] Close stream. id=${this.id} streamPath=${this.playStreamPath} streamId=${this.playStreamId}`);
+    if (this.isStarting) {
+      this.sendStatusMessage(this.playStreamId, 'status', 'NetStream.Play.Stop', 'Stopped playing stream.');
+    }
+    this.playStreamId = 0;
+    this.playStreamPath = '';
+  }
+
+  if (invokeMessage.streamId == this.publishStreamId) {
+    if (this.isPublishing) {
+      Logger.log(`[rtmp publish] Close stream. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId}`);
+      context.nodeEvent.emit('donePublish', this.id, this.publishStreamPath, this.publishArgs);
+      if (this.isStarting) {
+        this.sendStatusMessage(this.publishStreamId, 'status', 'NetStream.Unpublish.Success', `${this.publishStreamPath} is now unpublished.`);
+      }
+
+      for (let playerId of this.players) {
+        let playerSession = context.sessions.get(playerId);
+        if (playerSession instanceof NodeRtmpSession) {
+          playerSession.sendStatusMessage(playerSession.playStreamId, 'status', 'NetStream.Play.UnpublishNotify', 'stream is now unpublished.');
+          playerSession.flush();
+        } else {
+          playerSession.stop();
+        }
+      }
+
+      //let the players to idlePlayers
+      for (let playerId of this.players) {
+        let playerSession = context.sessions.get(playerId);
+        context.idlePlayers.add(playerId);
+        playerSession.isPlaying = false;
+        playerSession.isIdling = true;
+        if (playerSession instanceof NodeRtmpSession) {
+          playerSession.sendStreamStatus(STREAM_EOF, playerSession.playStreamId);
+        }
+      }
+
+      context.publishers.delete(this.publishStreamPath);
+      if (this.rtmpGopCacheQueue) {
+        this.rtmpGopCacheQueue.clear();
+      }
+      if (this.flvGopCacheQueue) {
+        this.flvGopCacheQueue.clear();
+      }
+      this.players.clear();
+      this.isPublishing = false;
+    }
+    this.publishStreamId = 0;
+    this.publishStreamPath = '';
+  }
+}
+}

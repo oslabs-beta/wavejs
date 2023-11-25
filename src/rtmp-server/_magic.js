@@ -1,3 +1,5 @@
+//const streamStorage = require('./simpleOut')
+
 const config = {
   port: 1935,
   chunk_size: 60000,
@@ -5,6 +7,19 @@ const config = {
   ping: 30,
   ping_timeout: 60,
   handshake_size: 1536,
+  packetType: {
+    sequenceStart: 0,
+    codedFrames: 1,
+    sequenceEnd: 2,
+    codedFramesX: 3,
+    metadata: 4,
+    MPEG2TSSequenceStart: 5,
+  },
+  fourCC: {
+    AV1: Buffer.from('av01'),
+    VP9: Buffer.from('vp09'),
+    HEVC: Buffer.from('hvc1')
+  },
   handshakeStages: {
     uninit: 0, //c0
     c1_to_s0_s1_s2: 1, //c1 - the random bytes, send s0, s1, and s2
@@ -111,8 +126,10 @@ const config = {
 };
 
 const state = {
+  socket: null,
+  ip: this.socket ? this.socket.remoteAddress : null,
   handshake: {
-    handshakeStage: handshakeStages.uninit,
+    handshakeStage: config.handshakeStages.uninit,
     handshakeBytes: 0,
     handshakePayload: Buffer.alloc(config.handshake_size)
   },
@@ -121,9 +138,24 @@ const state = {
   parserBasicBytes: 0,
   parserBuffer: Buffer.alloc(config.maxChunkHeader),
   parserPacket: null,
+  metaData: null,
+  pingInterval: null,
   recievedPackets: new Map(), //inPackets
-  rtmpGopCacheQueue: new Set(),
-  streamStorage: null, //this is conditional in NMS
+  rtmpGopCacheQueue: new Set(),//this is conditional in NMS
+  streamStorage: null ,//streamStorage,
+  isLocal: this.ip ? this.ip === '127.0.0.1' || this.ip === '::1' || this.ip == '::ffff:127.0.0.1' : null,
+  status: {
+    isStarting: false,
+    isPublishing: false,
+    isPlaying: false,
+    isIdling: false,
+    isPause: false,
+    isReceiveAudio: true,
+    isReceiveVideo: true,
+  },
+  connect: {
+    cmdObject:
+  },
   chunkSize: {
     input: config.defaultChunkSize,
     output: config.defaultChunkSize, //need to make this configurable the same way NMS does it either the config option (6000) or this
@@ -146,17 +178,21 @@ const state = {
     aacSequenceHeader: null,
   },
   video: {
-    videoCodec: 0,
-    videoCodecName: '',
-    videoProfileName: '',
-    videoWidth: 0,
-    videoHeight: 0,
-    videoFps: 0,
-    videoCount: 0,
-    videoLevel: 0,
+    codec: 0,
+    codecName: '',
+    profileName: '',
+    width: 0,
+    height: 0,
+    fps: 0,
+    count: 0,
+    level: 0,
     avcSequenceHeader: null
+  },
+  setSocket: function (socket) {
+    this.socket = socket;
   }
+  
 };
 
-
+state.setSocket('test')
 module.exports = {config, state};
