@@ -24,7 +24,7 @@ let currentLogLevel = LOG_LEVELS.debug;
 const ignoreHeaders = ['user-agent','postman-token', 'host', 'connection' ]
 
 const timeString = () => {
-  const ts  = new Date()
+  const ts  = new Date();
   return ts.toLocaleDateString() + ' ' + ts.toLocaleTimeString();
 }
 
