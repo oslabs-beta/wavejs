@@ -19,12 +19,11 @@ const buildStream = (streamId) => {
     .audioCodec('aac')
     // set number of audio channels
     .audioChannels(2)
-    // set hls segments time (chunks are approximately 8 seconds long each)
-    .addOption('-hls_time 8')
+    // set hls segments time (chunks are approximately 3 seconds long each)
+    .addOption('-hls_time 3')
     // include all the segments in the list (don't remove old segments => for saving / on-demand playback)
-    .addOption('-hls_list_size 0')
+    .addOption('-hls_list_size 1')
     //.addOption('-hls_playlist_type', 'event')
-
     .output(buildHLSPlaylistPath(streamId))
 
     .inputOptions('-listen 1')
