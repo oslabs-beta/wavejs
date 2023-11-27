@@ -14,8 +14,8 @@ const tcpServer = net.createServer((socket) => {
 
   //session, run
   socket.on('data',  dataSocketHandler);
-
-
+  state.socket.setTimeout(state.pingTimeout);
+  state.status.isStarting = true;
 })
 
 dataSocketHandler = (data, stopCb) => {

@@ -1,7 +1,9 @@
 const net = require('net');
+const EventEmitter = require('node:events')
 
+const server = net.createServer();
 
-const server = net.createServer((socket) => {
+server.on('connect', (socket) => {
   console.log('client connected')
   console.log('address:', socket.address())
   socket.on('end', () => {
@@ -15,7 +17,7 @@ const server = net.createServer((socket) => {
   })
   socket.write('hello\r\n');
   socket.pipe(socket);
-})
+});
 
 server.on('error', (err) => {
   throw err;
@@ -23,4 +25,13 @@ server.on('error', (err) => {
 
 server.listen(8000, () => {
   console.log('Server listening at 8000')
+})
+
+const stuff = new EventEmitter();
+
+
+stuff.emit('Hello!', 'World')
+
+stuff.on('Hello', (text) => {
+  console.log(text) // World
 })

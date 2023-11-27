@@ -77,7 +77,7 @@ const rtmpChunkBasicHeaderCreate = (fmt, cid) => {
 
 
 const rtmpChunkMessageHeaderCreate = (header) => {
-  let out = Buffer.alloc(rtmpHeaderSize[header.fmt % 4]);
+  let out = Buffer.alloc(config.rtmpHeaderSize[header.fmt % 4]);
   if (header.fmt <= config.chunkType.bytes3) {
     out.writeUIntBE(header.timestamp >= 0xffffff ? 0xffffff : header.timestamp, 0, 3);
   }
@@ -93,8 +93,18 @@ const rtmpChunkMessageHeaderCreate = (header) => {
   return out;
 };
 
+const generateSessionID = () => {
+  let sessionId = ''
+  const accepted = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
+  for (let i = 0; i < 8; i++) {
+    sessionId += accepted[Math.floor(Math.random()*accepted.length)]
+  }
+  return sessionId;
+};
+
 
 
 module.exports = {
-
+  rtmpChunksCreate,
+  generateSessionID
 }

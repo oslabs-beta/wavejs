@@ -7,17 +7,19 @@ data: {
 */
 
 const streamStorage = { 
-  data: new Map(),
+  sessions: new Map(),
+  publishers: new Map(),
   initializeStream: (streamId) => {
-    this.data.set(streamId, {
+    this.sessions.set(streamId, {
       streamData: new PassThrough(),
       numPlayCache: 0,
     });
   },
   
   retrieveStream: (streamId) => {
-    return this.data.get(streamId);
-  }
+    return this.sessions.get(streamId);
+  },
+  
 }
 
 

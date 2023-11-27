@@ -1,11 +1,10 @@
 //const streamStorage = require('./simpleOut')
+const utils = require('./rtmp_utils');
 
 const config = {
   port: 1935,
   chunk_size: 60000,
   gop_cache: true,
-  ping: 30,
-  ping_timeout: 60,
   handshake_size: 1536,
   packetType: {
     sequenceStart: 0,
@@ -127,11 +126,25 @@ const config = {
 
 const state = {
   socket: null,
+  id: utils.generateSessionID(),
   ip: this.socket ? this.socket.remoteAddress : null,
   handshake: {
     handshakeStage: config.handshakeStages.uninit,
     handshakeBytes: 0,
     handshakePayload: Buffer.alloc(config.handshake_size)
+  },
+  streams: {
+    count: 0, //not sure what this is for
+    publish: {
+      id: 0,
+      path: '',
+      args: {},
+    },
+    play: { // may not need this at all
+      id:0,
+      path: '',
+      args: {},
+    }
   },
   parserState: config.parserStages.init,
   parserBytes: 0,
@@ -142,7 +155,6 @@ const state = {
   pingInterval: null,
   recievedPackets: new Map(), //inPackets
   rtmpGopCacheQueue: new Set(),//this is conditional in NMS
-  streamStorage: null ,//streamStorage,
   isLocal: this.ip ? this.ip === '127.0.0.1' || this.ip === '::1' || this.ip == '::ffff:127.0.0.1' : null,
   status: {
     isStarting: false,
@@ -152,9 +164,24 @@ const state = {
     isPause: false,
     isReceiveAudio: true,
     isReceiveVideo: true,
+    
   },
   connect: {
-    cmdObject:
+    cmdObj: null,
+    appname: '',
+    objectEncoding: 0, //not instantiated in constructor in nms
+    time: null, //not instantiated in constructor in nms
+    startTimestamp: null,//not instantiated in constructor in nms
+    pingInterval: null,
+    pingTime: 60000, //this is configurable in NMS
+    pingTimeout: 30000, //this is configurable in NMS
+
+    bitrateCache: {
+      intervalMS:0,
+      last_update: null,
+      bytes: 0
+    }
+
   },
   chunkSize: {
     input: config.defaultChunkSize,
@@ -190,6 +217,9 @@ const state = {
   },
   setSocket: function (socket) {
     this.socket = socket;
+  },
+  setId: function() {
+    this.id = utils.generateSessionID();
   }
   
 };
