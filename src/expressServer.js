@@ -15,35 +15,51 @@ const contentTypes = {
 };
 const PORT = 3000;
 
+const app = express();
+
 const expressServer = {};
 
-expressServer.createExpressApp = () => {
-  const app = express();
-
+expressServer.start = (session, endpoint) => {
+  /* initial config */
   app.disable('x-powered-by');
 
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
   app.use(expressHttpLogger);
 
-  return app;
-};
+  app.get('/streams', (req, res) => {
+    res.status(200).json(Object.fromEntries(session.streams));
+  });
 
-expressServer.start = (session, endpoint) => {
-  const app = expressServer.createExpressApp();
+  expressServer.registerEndpoint(session, endpoint);
 
-  const server = http.createServer(app);
+  app.use((req, res, next) => {
+    res.status(404).send("😵 Can't find what you're looking for!");
+  });
+
+  app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('☠️ Something Broke!');
+  });
+
+  let server = http.createServer(app);
 
   server.listen(PORT, () => {
     console.log(`🚀 Express blasting off on port ${PORT}`);
   });
 };
 
-expressServer.registerEndpoints = () => {
-  const app = expressServer.createExpressApp();
+expressServer.registerEndpoint = (session, endpoint) => {
+  app.get(`/${endpoint}/:streamId/:m3u8`, (req, res) => {
+    //this is the area where we need to connect fmpg to the server
+    const stream = session.getStream(req.params.streamId);
+    const videoPath = `${stream.address}/${req.params.m3u8}`;
+    //'application/vnd.apple.mpegurl'
+    res.status(200).set('Content-Type', contentTypes['.m3u8']);
+    fs.createReadStream(videoPath).pipe(res);
+  });
 };
 
-// OLD CODE:
 // const expressServer = (session, endpoint) => {
 //   const app = express();
 
