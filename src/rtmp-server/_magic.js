@@ -167,14 +167,13 @@ const state = {
   connect: {
     cmdObj: null,
     appname: '',
-    tcUrl: '',
+
     objectEncoding: 0, //not instantiated in constructor in nms
     time: null, //not instantiated in constructor in nms
     startTimestamp: null, //not instantiated in constructor in nms
     pingInterval: null,
     pingTime: 60000, //this is configurable in NMS
     pingTimeout: 30000, //this is configurable in NMS
-
     bitrateCache: {
       intervalMS: 0,
       last_update: null,

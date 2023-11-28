@@ -11,7 +11,7 @@ const readAACSpecificConfig = (config, state, aacSequenceHeader) => {
   let bitop = new Bitop(aacSequenceHeader);
   bitop.read(16);
   info.object_type = getObjectType(bitop);
-  info.sample_rate = getSampleRate(bitop, info, config);
+  info.sample_rate = getSampleRate(config, state, bitop, info);
   info.chan_config = bitop.read(4);
   if (info.chan_config < config.audio.aacChannels.length) {
     info.channels = config.audio.aacChannels[info.chan_config];
@@ -24,7 +24,7 @@ const readAACSpecificConfig = (config, state, aacSequenceHeader) => {
     }
     info.ext_object_type = 5;
     info.sbr = 1;
-    info.sample_rate = getSampleRate(bitop, info, config);
+    info.sample_rate = getSampleRate(config, state, bitop, info);
     info.object_type = getObjectType(bitop);
   }
 

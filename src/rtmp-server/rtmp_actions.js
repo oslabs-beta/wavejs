@@ -79,7 +79,7 @@ const respondConnect = (config, state, tid) => {
 
 const sendInvokeMessage = (config, state, sid, opt) => {
   let packet = RtmpPacket.create();
-  packet.header.fmt = config.chunkTypes.bytes11;
+  packet.header.fmt = config.chunkType.bytes11;
   packet.header.cid = config.channel.invoke;
   packet.header.type = config.type.invoke;
   packet.header.stream_id = sid;

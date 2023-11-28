@@ -1,21 +1,18 @@
-
-
-const Outer = () => {
-  console.log('hello from init')
-  const names = ['Evan', 'Pedro', 'Steph', 'Sean'];
-  const name = names[Math.floor(Math.random()*names.length)];
-  console.log('the name would be', name)
-  return {
-    hello: () => `hello ${name}`,
-    bye: () => `bye ${name}`,
-    band: () => `banned in DC, ${name}`,
-  }
+const { PassThrough } = require('node:stream')
+const streamStorage = { 
+  publisherStreams: new Map(),
+  publishers: new Map(),
+  initializeStream: function (streamId) {
+    this.publisherStreams.set(streamId, {
+      res: new PassThrough(),
+      numPlayCache: 0,
+    });
+  },
+  
+  retrieveStream: function (streamId) {
+    return this.publisherStreams.get(streamId);
+  },
+  
 }
 
-const mod = Outer();
-console.log(mod.hello())
-console.log(mod.hello())
-console.log(mod.hello())
-console.log(mod.hello())
-console.log(mod.hello())
-console.log(mod.hello())
+console.log(streamStorage.retrieveStream('stuff'))

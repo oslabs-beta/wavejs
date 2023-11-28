@@ -3,7 +3,7 @@ const QueryString = require('node:querystring');
 const AV = require('./av');
 const AMF = require('./node_core_amf');
 const RtmpPacket = require('./RtmpPacket');
-const Handshake = require('./node_rtmp_handshake')
+const Handshake = require('./node_rtmp_handshake');
 
 const rtmpActions = require('./rtmp_actions');
 const utils = require('./utils');
@@ -12,9 +12,6 @@ const Logger = require('../logger');
 const streamStorage = require('./global');
 
 let streamId = 'test';
-
-
-
 
 /* CORE EVENT HANDLER */
 
@@ -29,27 +26,35 @@ const onSocketData = (config, state, data) => {
         state.handshake.handshakeStage = config.handshakeStages.c1_to_s0_s1_s2;
         state.handshake.handshakeBytes = 0;
         bytes -= 1;
-        bytesRead +=1;
+        bytesRead += 1;
         break;
       case config.handshakeStages.c1_to_s0_s1_s2:
         //get the 1536 rqndom bytes and store them (c1)
         //set number of bytes to process
         bytesToProcess = config.handshake_size - state.handshake.handshakeBytes;
         //if bytesToProcess  is lt-eq bytes, keep bytes as is, otherwise ensure it's the size of bytes
-        bytesToProcess = bytesToProcess <= bytes ? bytesToProcess: bytes;
+        bytesToProcess = bytesToProcess <= bytes ? bytesToProcess : bytes;
         //copy the random bites
-        data.copy(state.handshake.handshakePayload, state.handshake.handshakeBytes, bytesRead, bytesRead + bytesToProcess)
+        data.copy(
+          state.handshake.handshakePayload,
+          state.handshake.handshakeBytes,
+          bytesRead,
+          bytesRead + bytesToProcess
+        );
         //increment handshake bytes and bytesRead by the amount processed, decrementing bytes remaining
         state.handshake.handshakeBytes += bytesToProcess;
         bytesRead += bytesToProcess;
         bytes -= bytesToProcess;
         //if this is the full handshake, move to rtmp_handshake_1 and send S0, S1, and S2, reset handshakeBytes
         if (state.handshake.handshakeBytes === config.handshake_size) {
-          state.handshake.handshakeStage = config.handshakeStages. c2_to_connection;
+          state.handshake.handshakeStage =
+            config.handshakeStages.c2_to_connection;
           state.handshake.handshakeBytes = 0;
           //Build s0_s1_s2
-          let s0_s1_s2 = Handshake.generateS0S1S2(state.handshake.handshakePayload)
-          state.socket.write(s0_s1_s2)
+          let s0_s1_s2 = Handshake.generateS0S1S2(
+            state.handshake.handshakePayload
+          );
+          state.socket.write(s0_s1_s2);
         }
         break;
       case config.handshakeStages.c2_to_connection:
@@ -57,30 +62,33 @@ const onSocketData = (config, state, data) => {
         //set number of bytes to process
         bytesToProcess = config.handshake_size - state.handshake.handshakeBytes;
         //if bytesToProcess  is lt-eq bytes, keep bytes as is, otherwise ensure it's the size of bytes
-        bytesToProcess = bytesToProcess <= bytes ? bytesToProcess: bytes;
-        data.copy(state.handshake.handshakePayload, state.handshake.handshakeBytes, bytesRead, bytesToProcess)
-         //increment handshake bytes and bytesRead by the amount processed, decrementing bytes remaining
-         state.handshake.handshakeBytes += bytesToProcess;
-         bytesRead += bytesToProcess;
-         bytes -= bytesToProcess;
-         //if the sent handshake matches the number of bytes we sent, then C2 is valid and move to state 2 (connection)
-         if (state.handshake.handshakeBytes === config.handshake_size) {
-          state.handshake.handshakeStage = config.handshakeStages.begin_processing;
+        bytesToProcess = bytesToProcess <= bytes ? bytesToProcess : bytes;
+        data.copy(
+          state.handshake.handshakePayload,
+          state.handshake.handshakeBytes,
+          bytesRead,
+          bytesToProcess
+        );
+        //increment handshake bytes and bytesRead by the amount processed, decrementing bytes remaining
+        state.handshake.handshakeBytes += bytesToProcess;
+        bytesRead += bytesToProcess;
+        bytes -= bytesToProcess;
+        //if the sent handshake matches the number of bytes we sent, then C2 is valid and move to state 2 (connection)
+        if (state.handshake.handshakeBytes === config.handshake_size) {
+          state.handshake.handshakeStage =
+            config.handshakeStages.begin_processing;
           state.handshake.handshakeBytes = 0;
           state.handshake.handshakePayload = null;
-         }
+        }
         break;
       case config.handshakeStages.begin_processing:
       default:
         //connection has occured, we're away at the races
         //read chunk
-      return readRtmpChunk(config, state, data, bytesRead, bytes);
-      
+        return readRtmpChunk(config, state, data, bytesRead, bytes);
     }
   }
-}
-
-
+};
 
 /* RTMP RESOURCES */
 
@@ -197,7 +205,7 @@ const readRtmpChunk = (config, state, data, bytesRead, bytes) => {
           if (state.parserPacket.clock > 0xffffffff) {
             break;
           }
-          rtmpHandler()
+          rtmpHandler(config, state);
           //if there is no remainder for remaining chunks, just reset the while loop
         } else if (0 === state.parserPacket.bytes % state.chunkSize.input) {
           state.parserState = config.parserStages.init;
@@ -217,7 +225,7 @@ const readRtmpChunk = (config, state, data, bytesRead, bytes) => {
     state.ack.inSize - state.ack.inLast >= state.ack.size
   ) {
     state.ack.inLast = state.ack.inSize;
-    rtmpActions.sendACK(state.ack.inSize);
+    rtmpActions.sendACK(config, state, state.ack.inSize);
   }
 };
 
@@ -293,6 +301,7 @@ const rtmpPacketAlloc = (config, state) => {
 };
 
 /* RTMP CONTROL FLOW */
+
 const rtmpHandler = (config, state) => {
   switch (state.parserPacket.header.type) {
     case config.type.setChunkSize:
@@ -369,7 +378,7 @@ const rtmpAudioHandler = (config, state) => {
 
   if (sound_format != 10 && sound_format != 13) {
     //logging goes here
-    Logger.log(
+    Logger.info(
       `[rtmp publish] Handle audio. id=${state.id} streamPath=${state.streams.publish.path} sound_format=${sound_format} sound_type=${sound_type} sound_size=${sound_size} sound_rate=${sound_rate} codec_name=${state.audio.codecName} ${state.audio.Samplerate} ${state.audio.channels}ch`
     );
   }
@@ -381,7 +390,8 @@ const rtmpAudioHandler = (config, state) => {
     state.audio.aacSequenceHeader = Buffer.alloc(payload.length);
     payload.copy(state.audio.aacSequenceHeader);
     if (sound_format == 10) {
-      let info = AV.readAACSpecificConfig(state.audio.aacSequenceHeader);
+      //Logger.debug(state.audio)
+      let info = AV.readAACSpecificConfig(config, state, state.audio.aacSequenceHeader);
       state.audio.profileName = AV.getAACProfileName(info);
       state.audio.sampleRate = info.sample_rate;
       state.audio.channels = info.channels;
@@ -390,7 +400,7 @@ const rtmpAudioHandler = (config, state) => {
       state.audio.channels = payload[11];
     }
     //logging goes here
-    Logger.log(
+    Logger.info(
       `[rtmp publish] Handle audio. id=${state.id} streamPath=${state.streams.publish.path} sound_format=${sound_format} sound_type=${sound_type} sound_size=${sound_size} sound_rate=${sound_rate} codec_name=${state.audio.codecName} ${state.audio.sampleRate} ${state.audio.channels}ch`
     );
   }
@@ -402,7 +412,7 @@ const rtmpAudioHandler = (config, state) => {
   packet.payload = payload;
   packet.header.length = packet.payload.length;
   packet.header.timestamp = state.parserPacket.clock;
-  let rtmpChunks = utils.rtmpChunksCreate(packet);
+  let rtmpChunks = utils.rtmpChunksCreate(config, state, packet);
   // IMPORTANT: do I need to make an FLV session here??
   //let flvTag = NodeFlvSession.createFlvTag(packet);
 
@@ -417,20 +427,21 @@ const rtmpAudioHandler = (config, state) => {
     }
   }
   //our stream handler
-  if (streamStorage.get(streamId) === undefined) {
-    streamStorage.initializeStream(streamId); //IMPORTANT this has to come
+  const pubStreamId = `${state.id}_${state.connect.appname}`
+  if (streamStorage.retrieveStream(pubStreamId) === undefined) {
+    streamStorage.initializeStream(pubStreamId); //IMPORTANT this has to come
   }
-  let streamStore = streamStorage.retrieveStream(streamId);
+  let streamStore = streamStorage.retrieveStream(pubStreamId);
   if (streamStore.numPlayCache === 0) {
-    streamStore.streamData.cork();
+    streamStore.res.cork();
   }
-  rtmpChunks.writeUInt32LE(streamId, 8); //this needs to come from the socket
-  streamStore.streamData.write(rtmpChunks);
+  rtmpChunks.writeUInt32LE(pubStreamId, 8); //this needs to come from the socket
+  streamStore.res.write(rtmpChunks);
 
   streamStore.numPlayCache++;
 
   if (streamStore.numPlayCache === 10) {
-    process.nextTick(() => streamStore.StreamData.uncork());
+    process.nextTick(() => streamStore.res.uncork());
     streamStore.numPlayCache = 0;
   }
 
@@ -509,11 +520,11 @@ const rtmpVideoHandler = (config, state) => {
         payload[2] = 0;
         payload[3] = 0;
         payload[4] = 0;
-        // Logger.log("PacketTypeSequenceStart", payload.subarray(0, 16));
+        // Logger.info("PacketTypeSequenceStart", payload.subarray(0, 16));
       } else if (packetType == config.packetType.MPEG2TSSequenceStart) {
-        // Logger.log("PacketTypeMPEG2TSSequenceStart", payload.subarray(0, 16));
+        // Logger.info("PacketTypeMPEG2TSSequenceStart", payload.subarray(0, 16));
       } else if (packetType == config.packetType.codedFrames) {
-        // Logger.log("PacketTypeCodedFrames", payload.subarray(0, 16));
+        // Logger.info("PacketTypeCodedFrames", payload.subarray(0, 16));
         payload[0] = (frame_type << 4) | 0x0d;
         payload[1] = 1;
         payload[2] = 0;
@@ -522,7 +533,7 @@ const rtmpVideoHandler = (config, state) => {
       }
     } else {
       Logger.rtmpLog(`unsupported extension header`);
-   
+
       return;
     }
   }
@@ -540,12 +551,15 @@ const rtmpVideoHandler = (config, state) => {
     if (frame_type == 1 && payload[1] == 0) {
       state.video.avcSequenceHeader = Buffer.alloc(payload.length);
       payload.copy(state.video.avcSequenceHeader);
-      let info = AV.readAVCSpecificConfig(state.avcSequenceHeader);
+      let info = AV.readAVCSpecificConfig(state.video.avcSequenceHeader);
       state.video.width = info.width;
       state.video.height = info.height;
       state.video.profileName = AV.getAVCProfileName(info);
       state.video.level = info.level;
-      Logger.log(`[rtmp publish] avc sequence header`,state.video.avcSequenceHeader);
+      // Logger.info(
+      //   `[rtmp publish] avc sequence header`,
+      //   state.video.avcSequenceHeader
+      // );
     }
   }
 
@@ -553,7 +567,7 @@ const rtmpVideoHandler = (config, state) => {
     state.video.codec = codec_id;
     state.video.codecName = config.video.codecName[codec_id];
     //logging goes here
-    Logger.log(
+    Logger.info(
       `[rtmp publish] Handle video. id=${state.id} streamPath=${state.streams.publish.path} frame_type=${frame_type} codec_id=${codec_id} codec_name=${state.video.codecName} ${state.video.width}x${state.video.height}`
     );
   }
@@ -565,14 +579,14 @@ const rtmpVideoHandler = (config, state) => {
   packet.payload = payload;
   packet.header.length = packet.payload.length;
   packet.header.timestamp = state.parserPacket.clock;
-  let rtmpChunks = utils.rtmpChunksCreate(packet);
+  let rtmpChunks = utils.rtmpChunksCreate(config, state, packet);
   //let flvTag = NodeFlvSession.createFlvTag(packet);
 
   //cache gop
   if (state.rtmpGopCacheQueue != null) {
     if (frame_type == 1) {
       state.rtmpGopCacheQueue.clear();
-      state.flvGopCacheQueue.clear();
+      // state.flvGopCacheQueue.clear();
     }
     if (
       (codec_id == 7 || codec_id == 12 || codec_id == 13) &&
@@ -586,24 +600,25 @@ const rtmpVideoHandler = (config, state) => {
     }
   }
   //our stream handler
-  if (streamStorage.get(streamId) === undefined) {
-    streamStorage.initializeStream(streamId); //IMPORTANT this has to come first
+  const pubStreamId = `${state.id}_${state.connect.appname}`
+  if (streamStorage.retrieveStream(pubStreamId) === undefined) {
+    streamStorage.initializeStream(pubStreamId); //IMPORTANT this has to come
   }
-  let streamStore = streamStorage.retrieveStream(streamId);
+  let streamStore = streamStorage.retrieveStream(pubStreamId);
   if (streamStore.numPlayCache === 0) {
-    streamStore.streamData.cork();
+    streamStore.res.cork();
   }
-  rtmpChunks.writeUInt32LE(streamId, 8); //this needs to come from the socket
-  streamStore.streamData.write(rtmpChunks);
+  rtmpChunks.writeUInt32LE(pubStreamId, 8); //this needs to come from the socket
+  streamStore.res.write(rtmpChunks);
 
   streamStore.numPlayCache++;
 
   if (streamStore.numPlayCache === 10) {
-    process.nextTick(() => streamStore.StreamData.uncork());
+    process.nextTick(() => streamStore.res.uncork());
     streamStore.numPlayCache = 0;
   }
 
-  // // Logger.log(rtmpChunks);
+  // // Logger.info(rtmpChunks);
   // for (let playerId of this.players) {
   //   let playerSession = context.sessions.get(playerId);
 
@@ -661,15 +676,18 @@ const rtmpDataHandler = (config, state) => {
       packet.header.type = config.type.data;
       packet.payload = state.metaData;
       packet.header.length = packet.payload.length;
-      let rtmpChunks = utils.rtmpChunksCreate(packet);
+      let rtmpChunks = utils.rtmpChunksCreate(config, state, packet);
       //let flvTag = NodeFlvSession.createFlvTag(packet);
 
-      if (streamStorage.get(streamId) === undefined) {
-        streamStorage.initializeStream(streamId); //IMPORTANT this has to come first
+
+      const pubStreamId = `${state.id}_${state.connect.appname}`
+
+      if (streamStorage.retrieveStream(pubStreamId) === undefined) {
+        streamStorage.initializeStream(pubStreamId); //IMPORTANT this has to come
       }
-      let streamStore = streamStorage.retrieveStream(streamId);
-      rtmpChunks.writeUInt32LE(streamId, 8); //this needs to come from the socket
-      streamStore.streamData.write(rtmpChunks);
+      let streamStore = streamStorage.retrieveStream(pubStreamId);
+      rtmpChunks.writeUInt32LE(pubStreamId, 8); //this needs to come from the socket
+      streamStore.res.write(rtmpChunks);
 
       // for (let playerId of this.players) {
       //   let playerSession = context.sessions.get(playerId);
@@ -696,7 +714,7 @@ const rtmpInvokeHandler = (config, state) => {
     state.parserPacket.header.length
   );
   let invokeMessage = AMF.decodeAmf0Cmd(payload);
-  // Logger.log(invokeMessage);
+  // Logger.info(invokeMessage);
   switch (invokeMessage.cmd) {
     case 'connect': //y
       onConnect(config, state, invokeMessage);
@@ -747,7 +765,6 @@ const onConnect = (config, state, invokeMessage) => {
   //state
   state.connect.cmdObj = invokeMessage.cmdObj;
   state.connect.appname = invokeMessage.cmdObj.app;
-  state.connect.tcUrl = invokeMessage.cmdObj.tcUrl;
   state.connect.objectEncoding =
     invokeMessage.cmdObj.objectEncoding != null
       ? invokeMessage.cmdObj.objectEncoding
@@ -762,24 +779,26 @@ const onConnect = (config, state, invokeMessage) => {
 
   //functions
   state.connect.pingInterval = setInterval(() => {
-    rtmpActions.sendPingRequest(config, state, state.socket);
+    rtmpActions.sendPingRequest(config, state);
   }, state.connect.pingTime);
-  rtmpActions.sendWindowACK(5000000, state.socket);
-  rtmpActions.setPeerBandwidth(5000000, 2, state.socket);
-  rtmpActions.setChunkSize(config.chunkSize.output, state.socket);
-  rtmpActions.respondConnect(invokeMessage.transId, state, state.socket);
+  rtmpActions.sendWindowACK(config, state, 5000000);
+  rtmpActions.setPeerBandwidth(config, state, 5000000, 2);
+  rtmpActions.setChunkSize(config, state, state.chunkSize.output);
+  rtmpActions.respondConnect(config, state, invokeMessage.transId);
 
   //logging goes here
-   Logger.log(`[rtmp connect] id=${state.id} ip=${state.ip} app=${state.connect.appname} tcUrl=${state.connect.tcUrl} args=${JSON.stringify(invokeMessage.cmdObj)}`);
+  Logger.info(
+    `[rtmp connect] id=${state.id} ip=${state.ip} app=${
+      state.connect.appname
+    } args=${JSON.stringify(invokeMessage.cmdObj)}`
+  );
   // context.nodeEvent.emit('postConnect', this.id, invokeMessage.cmdObj);
 };
 
 const onCreateStream = (config, state, invokeMessage) => {
   rtmpActions.respondCreateStream(
+    config, state,
     invokeMessage.transId,
-    config,
-    state,
-    state.socket
   );
 };
 
@@ -794,6 +813,7 @@ const onPublish = (config, state, invokeMessage) => {
   );
   state.streams.publish.id = state.parserPacket.header.stream_id;
   // context.nodeEvent.emit('prePublish', this.id, this.publishStreamPath, this.publishArgs);
+  const pubStreamId = `${state.id}_${state.connect.appname}`
   if (!state.status.isStarting) {
     return;
   }
@@ -801,7 +821,7 @@ const onPublish = (config, state, invokeMessage) => {
   // if (this.config.auth && this.config.auth.publish && !this.isLocal) {
   //   let results = NodeCoreUtils.verifyAuth(this.publishArgs.sign, this.publishStreamPath, this.config.auth.secret);
   //   if (!results) {
-  //     Logger.log(`[rtmp publish] Unauthorized. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId} sign=${this.publishArgs.sign} `);
+  //     Logger.info(`[rtmp publish] Unauthorized. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId} sign=${this.publishArgs.sign} `);
   //     this.sendStatusMessage(this.publishStreamId, 'error', 'NetStream.publish.Unauthorized', 'Authorization required.');
   //     return;
   //   }
@@ -810,19 +830,20 @@ const onPublish = (config, state, invokeMessage) => {
   if (streamStorage.publishers.has(state.streams.publish.path)) {
     reject(config, state);
     //logger goes here
-    // Logger.log(`[rtmp publish] Already has a stream. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId}`);
-    // this.sendStatusMessage(this.publishStreamId, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
+    Logger.info(`[rtmp publish] Already has a stream. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.publish.streams.id}`);
+    rtmpActions.sendStatusMessage(config, state, state.streams.publish.id, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
   } else if (state.status.isPublishing) {
     //Logger goes here
-    // Logger.log(`[rtmp publish] NetConnection is publishing. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId}`);
-    // this.sendStatusMessage(this.publishStreamId, 'error', 'NetStream.Publish.BadConnection', 'Connection already publishing');
+    Logger.info(`[rtmp publish] NetConnection is publishing. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.streams.publish.id}`);
+    rtmpActions.sendStatusMessage(config, state, state.streams.publish.id, 'error', 'NetStream.Publish.BadConnection', 'Connection already publishing');
   } else {
     //loggert goes here
-    // Logger.log(`[rtmp publish] New stream. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId}`);
-    streamStorage.publishers.set(state.streams.publish.path, state.id);
+    // Logger.info(`[rtmp publish] New stream. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId}`);
+    streamStorage.publishers.set(state.streams.publish.path, pubStreamId);
     state.status.isPublishing = true;
 
     rtmpActions.sendStatusMessage(
+      config,state,
       state.streams.publish.id,
       'status',
       'NetStream.Publish.Start',
@@ -842,13 +863,13 @@ const onPublish = (config, state, invokeMessage) => {
 const onReceiveAudio = (invokeMessage, config, state) => {
   state.status.isReceiveAudio = invokeMessage.bool;
   //logger goes here
-  //Logger.log(`[rtmp play] receiveAudio=${this.isReceiveAudio} id=${this.id} `);
+  //Logger.info(`[rtmp play] receiveAudio=${this.isReceiveAudio} id=${this.id} `);
 };
 
 const onReceiveVideo = (invokeMessage, config, state) => {
   state.status.isReceiveVideo = invokeMessage.bool;
   //Logger goes here
-  //Logger.log(`[rtmp play] receiveVideo=${this.isReceiveVideo} id=${this.id} `);
+  //Logger.info(`[rtmp play] receiveVideo=${this.isReceiveVideo} id=${this.id} `);
 };
 
 const onCloseStream = (config, state) => {
@@ -857,7 +878,7 @@ const onCloseStream = (config, state) => {
   onDeleteStream(closeStream, config, state);
 };
 
-const onDeleteStream = (config, state, invokeMessage ) => {
+const onDeleteStream = (config, state, invokeMessage) => {
   // play focused
   //if (invokeMessage.streamId == state.streams.play.id) {
   //   if (state.status.isIdling) {
@@ -871,7 +892,7 @@ const onDeleteStream = (config, state, invokeMessage ) => {
   //     context.nodeEvent.emit('donePlay', this.id, this.playStreamPath, this.playArgs);
   //     this.isPlaying = false;
   //   }
-  //   Logger.log(`[rtmp play] Close stream. id=${this.id} streamPath=${this.playStreamPath} streamId=${this.playStreamId}`);
+  //   Logger.info(`[rtmp play] Close stream. id=${this.id} streamPath=${this.playStreamPath} streamId=${this.playStreamId}`);
   //   if (this.isStarting) {
   //     this.sendStatusMessage(this.playStreamId, 'status', 'NetStream.Play.Stop', 'Stopped playing stream.');
   //   }
@@ -882,10 +903,13 @@ const onDeleteStream = (config, state, invokeMessage ) => {
   if (invokeMessage.streamId == state.streams.publish.id) {
     if (state.status.isPublishing) {
       //logging goes here
-      // Logger.log(`[rtmp publish] Close stream. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId}`);
+      Logger.info(`[rtmp publish] Close stream. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.streams.publish.id}`);
       // context.nodeEvent.emit('donePublish', this.id, this.publishStreamPath, this.publishArgs);
+      Logger.info(`[rtmp publish] global streams: publishers: ${
+        JSON.stringify(Array.from(streamStorage.publishers.entries()))}`)
       if (state.status.isStarting) {
         rtmpActions.sendStatusMessage(
+          config, state,
           state.streams.publish.id,
           'status',
           'NetStream.Unpublish.Success',
@@ -921,12 +945,13 @@ const onDeleteStream = (config, state, invokeMessage ) => {
 
       state.status.isPublishing = false;
     }
-    state.stream.publish.id = 0;
-    state.stream.publish.path = '';
+    state.streams.publish.id = 0;
+    state.streams.publish.path = '';
   }
 };
 
 const stop = (config, state) => {
+  const pubStreamId = `${state.id}_${state.connect.appname}`
   if (state.status.isStarting) {
     state.status.isStarting = false;
 
@@ -942,28 +967,30 @@ const stop = (config, state) => {
       clearInterval(state.pingInterval);
       state.pingInterval = null;
     }
-    //logger goes here
-    //Logger.log(`[rtmp disconnect] id=${this.id}`);
+
+    Logger.info(`[rtmp disconnect] id=${state.id}`);
 
     state.connect.cmdObj.bytesWritten = state.socket.bytesWritten;
     state.connect.cmdObj.bytesRead = state.socket.bytesRead;
     //context.nodeEvent.emit('doneConnect', this.id, this.connectCmdObj);
-
-    sessionStorage.sessions.delete(this.id);
+    Logger.info('made it to end of stop')
+    streamStorage.publisherStreams.delete(pubStreamId);
     state.socket.destroy();
+    
+    return;
   }
 };
 
 const reject = (config, state) => {
   //logger goes here
-  //Logger.log(`[rtmp reject] id=${this.id}`);
+  Logger.info(`[rtmp reject] id=${state.id}`);
   stop(config, state);
 };
 
-
 module.exports = {
-  stop, onSocketData
-}
+  stop,
+  onSocketData,
+};
 // onPlay(invokeMessage) {
 //   if (typeof invokeMessage.streamName !== 'string') {
 //     return;
@@ -980,14 +1007,14 @@ module.exports = {
 //   if (this.config.auth && this.config.auth.play && !this.isLocal) {
 //     let results = NodeCoreUtils.verifyAuth(this.playArgs.sign, this.playStreamPath, this.config.auth.secret);
 //     if (!results) {
-//       Logger.log(`[rtmp play] Unauthorized. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} sign=${this.playArgs.sign}`);
+//       Logger.info(`[rtmp play] Unauthorized. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} sign=${this.playArgs.sign}`);
 //       this.sendStatusMessage(this.playStreamId, 'error', 'NetStream.play.Unauthorized', 'Authorization required.');
 //       return;
 //     }
 //   }
 
 //   if (this.isPlaying) {
-//     Logger.log(`[rtmp play] NetConnection is playing. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} `);
+//     Logger.info(`[rtmp play] NetConnection is playing. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} `);
 //     this.sendStatusMessage(this.playStreamId, 'error', 'NetStream.Play.BadConnection', 'Connection already playing');
 //   } else {
 //     this.respondPlay();
@@ -996,7 +1023,7 @@ module.exports = {
 //   if (context.publishers.has(this.playStreamPath)) {
 //     this.onStartPlay();
 //   } else {
-//     Logger.log(`[rtmp play] Stream not found. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId}`);
+//     Logger.info(`[rtmp play] Stream not found. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId}`);
 //     this.isIdling = true;
 //     context.idlePlayers.add(this.id);
 //   }
@@ -1054,14 +1081,14 @@ module.exports = {
 //   this.isIdling = false;
 //   this.isPlaying = true;
 //   context.nodeEvent.emit('postPlay', this.id, this.playStreamPath, this.playArgs);
-//   Logger.log(`[rtmp play] Join stream. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} `);
+//   Logger.info(`[rtmp play] Join stream. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} `);
 // }
 
 // onPause(invokeMessage) {
 //   this.isPause = invokeMessage.pause;
 //   let c = this.isPause ? 'NetStream.Pause.Notify' : 'NetStream.Unpause.Notify';
 //   let d = this.isPause ? 'Paused live' : 'Unpaused live';
-//   Logger.log(`[rtmp play] ${d} stream. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} `);
+//   Logger.info(`[rtmp play] ${d} stream. id=${this.id} streamPath=${this.playStreamPath}  streamId=${this.playStreamId} `);
 //   if (!this.isPause) {
 //     this.sendStreamStatus(STREAM_BEGIN, this.playStreamId);
 //     if (context.publishers.has(this.playStreamPath)) {
