@@ -23,7 +23,7 @@ const buildHLSDir = (streamId) => {
 
 const buildHLSSegmentPath = (streamId, segment) => path.join(buildHLSDirPath(streamId), `manifest${segment}.ts`)
 
-console.log(buildHLSPlaylistPath('test'));
+//console.log(buildHLSPlaylistPath('test'));
 
 const deleteHLSDir = (streamId) => {
   const path = buildHLSDirPath(streamId);
