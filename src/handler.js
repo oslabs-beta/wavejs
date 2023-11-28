@@ -30,8 +30,8 @@ const configureVideoAudio = (updatedSettings) => {
 
 // start express & ffmpeg servers:
 const startServers = () => {
-  startFfmpegServer();
-  //startRTMPServer();
+  //startFfmpegServer();
+  startRTMPServer();
   expressServer(session, HTTP_ENDPOINT);
 };
 

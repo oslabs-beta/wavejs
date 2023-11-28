@@ -3,8 +3,8 @@ const { PassThrough } = require('node:stream');
 
 const streamStorage = {
   streams: new Map(),
-  publisherStreams: new Map(),
-  publishers: new Map(),
+  publisherStreams: new Map(), //3908f0_LIVE, <PassThrough ff ff ff>
+  publishers: new Map(), // /LIVE/MY_COOL_STREAM, 3908f0_LIVE
   initializeStream(streamId) {
     this.publisherStreams.set(streamId, {
       res: new PassThrough(),

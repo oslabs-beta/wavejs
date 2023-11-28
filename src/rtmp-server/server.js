@@ -17,11 +17,10 @@ const streamStorage = require('../session'); //maybe use this for close
 const Server = () => {
   //get initial state for server
   const config = _.cloneDeep(baseConfig);
-  const state = _.cloneDeep(baseState);
 
   const tcpServer = net.createServer((socket) => {
     //bind session and config as needed here
-  //  Logger.info('outer TCP Server Connection Started')
+    //  Logger.info('outer TCP Server Connection Started')
     //regenerate state for new sessions
     const config = _.cloneDeep(baseConfig);
     const state = _.cloneDeep(baseState);
@@ -35,8 +34,6 @@ const Server = () => {
 
     //session, run
     state.socket.on('data', (data) => {
-      
-      
       onSocketData(data);
     });
     state.socket.on('close', () => {
@@ -44,11 +41,11 @@ const Server = () => {
       stop();
     });
     state.socket.on('error', (err) => {
-      Logger.error(`Outer socket error: ${err}`)
+      Logger.error(`Outer socket error: ${err}`);
       stop();
     });
     state.socket.on('timeout', () => {
-      Logger.error(`Outer socket timeout`)
+      Logger.error(`Outer socket timeout`);
       stop();
     });
     state.socket.setTimeout(state.connect.pingTimeout);
