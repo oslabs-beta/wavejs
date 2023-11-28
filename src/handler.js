@@ -1,6 +1,8 @@
 const expressServer = require('./expressServer');
-const { ffmpegServer } = require('./ingest');
-const session = require('./session');
+const ffmpegServer = require('./ingest')
+const session = require('./session')
+
+const { Server } = require('./rtmp-server')
 
 const STREAM_ID = 'test';
 const RTMP_ENDPOINT = 'live';
@@ -10,6 +12,11 @@ const HTTP_ENDPOINT = 'video';
 const startFfmpegServer = () => {
   ffmpegServer.start();
 };
+
+const startRTMPServer = () => {
+  const server = Server();
+  server.run();
+}
 
 // configure ffmpeg stream:
 const configureStream = (updatedSettings) => {
@@ -33,8 +40,11 @@ const registerEndpoint = (endpoint) => {
 
 // start express & ffmpeg servers:
 const startServers = () => {
-  startFfmpegServer();
-  startExpressServer();
+  //startFfmpegServer();
+  startRTMPServer();
+  expressServer(session, HTTP_ENDPOINT);
+//   startFfmpegServer();
+//   startExpressServer();
 };
 
 startServers();

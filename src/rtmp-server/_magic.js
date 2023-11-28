@@ -1,10 +1,24 @@
+//const streamStorage = require('./simpleOut')
+const utils = require('./utils');
+
 const config = {
   port: 1935,
   chunk_size: 60000,
   gop_cache: true,
-  ping: 30,
-  ping_timeout: 60,
   handshake_size: 1536,
+  packetType: {
+    sequenceStart: 0,
+    codedFrames: 1,
+    sequenceEnd: 2,
+    codedFramesX: 3,
+    metadata: 4,
+    MPEG2TSSequenceStart: 5,
+  },
+  fourCC: {
+    AV1: Buffer.from('av01'),
+    VP9: Buffer.from('vp09'),
+    HEVC: Buffer.from('hvc1'),
+  },
   handshakeStages: {
     uninit: 0, //c0
     c1_to_s0_s1_s2: 1, //c1 - the random bytes, send s0, s1, and s2
@@ -75,20 +89,14 @@ const config = {
       'OPUS',
       'MP3-8K',
       'DeviceSpecific',
-      'Uncompressed'
+      'Uncompressed',
     ],
-    soundRate: [
-      5512, 11025, 22050, 44100
-    ],
+    soundRate: [5512, 11025, 22050, 44100],
     sampleRate: [
-      96000, 88200, 64000, 48000,
-      44100, 32000, 24000, 22050,
-      16000, 12000, 11025, 8000,
-      7350, 0, 0, 0
+      96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000,
+      11025, 8000, 7350, 0, 0, 0,
     ],
-    aacChannels: [
-      0, 1, 2, 3, 4, 5, 6, 8
-    ],
+    aacChannels: [0, 1, 2, 3, 4, 5, 6, 8],
   },
   video: {
     codecName: [
@@ -111,19 +119,67 @@ const config = {
 };
 
 const state = {
+  socket: null,
+  id: utils.generateSessionID(),
+  ip: this.socket ? this.socket.remoteAddress : null,
   handshake: {
-    handshakeStage: handshakeStages.uninit,
+    handshakeStage: config.handshakeStages.uninit,
     handshakeBytes: 0,
-    handshakePayload: Buffer.alloc(config.handshake_size)
+    handshakePayload: Buffer.alloc(config.handshake_size),
+  },
+  streams: {
+    count: 0, //not sure what this is for
+    publish: {
+      id: 0,
+      path: '',
+      args: {},
+    },
+    play: {
+      // may not need this at all
+      id: 0,
+      path: '',
+      args: {},
+    },
   },
   parserState: config.parserStages.init,
   parserBytes: 0,
   parserBasicBytes: 0,
   parserBuffer: Buffer.alloc(config.maxChunkHeader),
   parserPacket: null,
+  metaData: null,
+  pingInterval: null,
   recievedPackets: new Map(), //inPackets
-  rtmpGopCacheQueue: new Set(),
-  streamStorage: null, //this is conditional in NMS
+  rtmpGopCacheQueue: new Set(), //this is conditional in NMS
+  isLocal: this.ip
+    ? this.ip === '127.0.0.1' ||
+      this.ip === '::1' ||
+      this.ip == '::ffff:127.0.0.1'
+    : null,
+  status: {
+    isStarting: false,
+    isPublishing: false,
+    isPlaying: false,
+    isIdling: false,
+    isPause: false,
+    isReceiveAudio: true,
+    isReceiveVideo: true,
+  },
+  connect: {
+    cmdObj: null,
+    appname: '',
+
+    objectEncoding: 0, //not instantiated in constructor in nms
+    time: null, //not instantiated in constructor in nms
+    startTimestamp: null, //not instantiated in constructor in nms
+    pingInterval: null,
+    pingTime: 60000, //this is configurable in NMS
+    pingTimeout: 30000, //this is configurable in NMS
+    bitrateCache: {
+      intervalMS: 0,
+      last_update: null,
+      bytes: 0,
+    },
+  },
   chunkSize: {
     input: config.defaultChunkSize,
     output: config.defaultChunkSize, //need to make this configurable the same way NMS does it either the config option (6000) or this
@@ -146,17 +202,24 @@ const state = {
     aacSequenceHeader: null,
   },
   video: {
-    videoCodec: 0,
-    videoCodecName: '',
-    videoProfileName: '',
-    videoWidth: 0,
-    videoHeight: 0,
-    videoFps: 0,
-    videoCount: 0,
-    videoLevel: 0,
-    avcSequenceHeader: null
-  }
+    codec: 0,
+    codecName: '',
+    profileName: '',
+    width: 0,
+    height: 0,
+    fps: 0,
+    count: 0,
+    level: 0,
+    avcSequenceHeader: null,
+  },
+  setSocket: function (socket) {
+    this.socket = socket;
+    this.ip = this.socket.remoteAddress;
+  },
+  setId: function () {
+    this.id = utils.generateSessionID();
+  },
 };
 
-
-module.exports = {config, state};
+state.setSocket('test');
+module.exports = { config, state };

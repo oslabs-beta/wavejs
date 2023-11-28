@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --config webpack.config.js",
     "dev-server": "nodemon ./frontend/server.js localhost 8000",
-    "dev-client": "webpack-dev-server --port 3030"
+    "dev-client": "webpack-dev-server --port 3030",
+    "dev-all": "webpack-dev-server --port 3030 & nodemon src/handler.js"
   },
   "author": "",
   "license": "ISC",
