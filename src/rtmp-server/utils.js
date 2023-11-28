@@ -1,7 +1,10 @@
-const { config, state } = require('./_magic');
 
 
-const rtmpChunksCreate = (packet) => {
+/*
+rtmpChunksCreate shoudl be partialed
+*/
+
+const rtmpChunksCreate = (config, state, packet) => {
   let header = packet.header;
   let payload = packet.payload;
   let payloadSize = header.length;
@@ -9,8 +12,8 @@ const rtmpChunksCreate = (packet) => {
   let chunksOffset = 0;
   let payloadOffset = 0;
   let chunkBasicHeader = rtmpChunkBasicHeaderCreate(header.fmt, header.cid);
-  let chunkBasicHeader3 = this.rtmpChunkBasicHeaderCreate(RTMP_CHUNK_TYPE_3, header.cid);
-  let chunkMessageHeader = this.rtmpChunkMessageHeaderCreate(header);
+  let chunkBasicHeader3 = rtmpChunkBasicHeaderCreate(config.chunkType.bytes0, header.cid);
+  let chunkMessageHeader = rtmpChunkMessageHeaderCreate(config, state, header);
   let useExtendedTimestamp = header.timestamp >= 0xffffff;
   let headerSize = chunkBasicHeader.length + chunkMessageHeader.length + (useExtendedTimestamp ? 4 : 0);
   let n = headerSize + payloadSize + Math.floor(payloadSize / chunkSize);
@@ -76,7 +79,7 @@ const rtmpChunkBasicHeaderCreate = (fmt, cid) => {
 };
 
 
-const rtmpChunkMessageHeaderCreate = (header) => {
+const rtmpChunkMessageHeaderCreate = (config, state, header) => {
   let out = Buffer.alloc(config.rtmpHeaderSize[header.fmt % 4]);
   if (header.fmt <= config.chunkType.bytes3) {
     out.writeUIntBE(header.timestamp >= 0xffffff ? 0xffffff : header.timestamp, 0, 3);
@@ -102,9 +105,40 @@ const generateSessionID = () => {
   return sessionId;
 };
 
+const partialMod = (module, inputArgs, filter={}) => {
+  const partialFunc = (func, ...inputArgs) => {
+    return (...args) => {
+      return func(...inputArgs, ...args)
+    }
+  }
+  let output;
+  if (typeof module === 'function') {
+    output = partialFunc(module, ...inputArgs)
+  } else if (typeof module === 'object') {
+    output = {};
+    let entries = Object.entries(module);
+    let functions = entries.filter(entry => typeof entry[1] === 'function')
+    let notFunctions = entries.filter(entry => typeof entry[1] !== 'function')
+    for (let [k, func] of functions) {
+      if (typeof func !== 'function') throw new Error()
+      if (Object.hasOwn(filter, k)) {
+        output[k] = partialFunc(func, ...filter[k])
+      } else {
+        output[k] = partialFunc(func, ...inputArgs)
+      }
+    }
+    Object.assign(output, Object.fromEntries(notFunctions));
+  } else {
+    throw new Error(`Type of input ${typeof module} is not supported.`)
+  }
+  
+  return output;
+}
+
 
 
 module.exports = {
   rtmpChunksCreate,
-  generateSessionID
+  generateSessionID,
+  partialMod,
 }

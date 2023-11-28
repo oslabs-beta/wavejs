@@ -7,6 +7,7 @@ const LOG_LEVELS = {
   warn: 2,
   info: 3,
   http: 4,
+  rtmp: 4,
   debug: 5,
 }
 
@@ -17,10 +18,12 @@ const styles = {
   warn: chalk.bgYellowBright,
   info: chalk.bgGreenBright,
   http: chalk.bgMagentaBright,
+  rtmp: chalk.bgCyanBright,
   debug: chalk.bgCyanBright,
 }
 
 let currentLogLevel = LOG_LEVELS.debug;
+
 const ignoreHeaders = ['user-agent','postman-token', 'host', 'connection' ]
 
 const timeString = () => {
@@ -73,6 +76,16 @@ const httpLog = (...args) => {
     );
 };
 
+const rtmpLog = (...args) => {
+  if (currentLogLevel < LOG_LEVELS.rtmp) return;
+  console.log(
+    styles.timestring(timeString()),
+    styles.process(process.pid),
+    styles.rtmp(' RTMP  '),
+    ...args
+    );
+};
+
 const debug = (...args) => {
   if (currentLogLevel < LOG_LEVELS.debug) return;
   console.log(
@@ -102,6 +115,6 @@ module.exports = {
   LOG_LEVELS,
   setLogLevel,
   expressHttpLogger,
-  error, warn, info, debug, httpLog,
+  error, warn, info, debug, httpLog, rtmpLog
 
 }

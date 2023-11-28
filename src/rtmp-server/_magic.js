@@ -1,5 +1,5 @@
 //const streamStorage = require('./simpleOut')
-const utils = require('./rtmp_utils');
+const utils = require('./utils');
 
 const config = {
   port: 1935,
@@ -17,7 +17,7 @@ const config = {
   fourCC: {
     AV1: Buffer.from('av01'),
     VP9: Buffer.from('vp09'),
-    HEVC: Buffer.from('hvc1')
+    HEVC: Buffer.from('hvc1'),
   },
   handshakeStages: {
     uninit: 0, //c0
@@ -89,20 +89,14 @@ const config = {
       'OPUS',
       'MP3-8K',
       'DeviceSpecific',
-      'Uncompressed'
+      'Uncompressed',
     ],
-    soundRate: [
-      5512, 11025, 22050, 44100
-    ],
+    soundRate: [5512, 11025, 22050, 44100],
     sampleRate: [
-      96000, 88200, 64000, 48000,
-      44100, 32000, 24000, 22050,
-      16000, 12000, 11025, 8000,
-      7350, 0, 0, 0
+      96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000,
+      11025, 8000, 7350, 0, 0, 0,
     ],
-    aacChannels: [
-      0, 1, 2, 3, 4, 5, 6, 8
-    ],
+    aacChannels: [0, 1, 2, 3, 4, 5, 6, 8],
   },
   video: {
     codecName: [
@@ -131,7 +125,7 @@ const state = {
   handshake: {
     handshakeStage: config.handshakeStages.uninit,
     handshakeBytes: 0,
-    handshakePayload: Buffer.alloc(config.handshake_size)
+    handshakePayload: Buffer.alloc(config.handshake_size),
   },
   streams: {
     count: 0, //not sure what this is for
@@ -140,11 +134,12 @@ const state = {
       path: '',
       args: {},
     },
-    play: { // may not need this at all
-      id:0,
+    play: {
+      // may not need this at all
+      id: 0,
       path: '',
       args: {},
-    }
+    },
   },
   parserState: config.parserStages.init,
   parserBytes: 0,
@@ -154,8 +149,12 @@ const state = {
   metaData: null,
   pingInterval: null,
   recievedPackets: new Map(), //inPackets
-  rtmpGopCacheQueue: new Set(),//this is conditional in NMS
-  isLocal: this.ip ? this.ip === '127.0.0.1' || this.ip === '::1' || this.ip == '::ffff:127.0.0.1' : null,
+  rtmpGopCacheQueue: new Set(), //this is conditional in NMS
+  isLocal: this.ip
+    ? this.ip === '127.0.0.1' ||
+      this.ip === '::1' ||
+      this.ip == '::ffff:127.0.0.1'
+    : null,
   status: {
     isStarting: false,
     isPublishing: false,
@@ -164,24 +163,23 @@ const state = {
     isPause: false,
     isReceiveAudio: true,
     isReceiveVideo: true,
-    
   },
   connect: {
     cmdObj: null,
     appname: '',
+    tcUrl: '',
     objectEncoding: 0, //not instantiated in constructor in nms
     time: null, //not instantiated in constructor in nms
-    startTimestamp: null,//not instantiated in constructor in nms
+    startTimestamp: null, //not instantiated in constructor in nms
     pingInterval: null,
     pingTime: 60000, //this is configurable in NMS
     pingTimeout: 30000, //this is configurable in NMS
 
     bitrateCache: {
-      intervalMS:0,
+      intervalMS: 0,
       last_update: null,
-      bytes: 0
-    }
-
+      bytes: 0,
+    },
   },
   chunkSize: {
     input: config.defaultChunkSize,
@@ -213,16 +211,16 @@ const state = {
     fps: 0,
     count: 0,
     level: 0,
-    avcSequenceHeader: null
+    avcSequenceHeader: null,
   },
   setSocket: function (socket) {
     this.socket = socket;
+    this.ip = this.socket.remoteAddress;
   },
-  setId: function() {
+  setId: function () {
     this.id = utils.generateSessionID();
-  }
-  
+  },
 };
 
-state.setSocket('test')
-module.exports = {config, state};
+state.setSocket('test');
+module.exports = { config, state };

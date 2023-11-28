@@ -1,6 +1,12 @@
 const Bitop = require('./node_core_bitop');
 
-const readAACSpecificConfig = (aacSequenceHeader, config) => {
+/*
+readAACSpecificConfig - can be partialed
+getSampleRate - can be partialed
+*/
+
+
+const readAACSpecificConfig = (config, state, aacSequenceHeader) => {
   let info = {};
   let bitop = new Bitop(aacSequenceHeader);
   bitop.read(16);
@@ -33,7 +39,7 @@ function getObjectType(bitop) {
   return audioObjectType;
 }
 
-function getSampleRate(bitop, info, config) {
+function getSampleRate(config, state, bitop, info) {
   info.sampling_index = bitop.read(4);
   return info.sampling_index == 0x0f ? bitop.read(24) : config.audio.sampleRate[info.sampling_index];
 }
@@ -374,7 +380,7 @@ function readHEVCSpecificConfig(hevcSequenceHeader) {
     let p = hevcSequenceHeader.slice(23);
     for (let i = 0; i < numOfArrays; i++) {
       if (p.length < 3) {
-        brak;
+        break;
       }
       let nalutype = p[0];
       let n = (p[1]) << 8 | p[2];
