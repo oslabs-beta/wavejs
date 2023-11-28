@@ -1,7 +1,20 @@
-const { buildHLSDirPath } = require('./fileControllerstub');
+const { buildHLSDirPath } = require('./fileController');
+const { PassThrough } = require('node:stream');
 
-const session = {
+const streamStorage = {
   streams: new Map(),
+  publisherStreams: new Map(),
+  publishers: new Map(),
+  initializeStream(streamId) {
+    this.publisherStreams.set(streamId, {
+      res: new PassThrough(),
+      numPlayCache: 0,
+    });
+  },
+  
+  retrieveStream(streamId) {
+    return this.publisherStreams.get(streamId);
+  },
 };
 
 /*
@@ -11,7 +24,7 @@ const session = {
   }
 */
 
-session.addStream = function (streamId, active = true) {
+streamStorage.addStream = function (streamId, active = true) {
   this.streams.set(streamId, {
     active,
     address: buildHLSDirPath(streamId),
@@ -19,15 +32,15 @@ session.addStream = function (streamId, active = true) {
   return;
 };
 
-session.getStream = function (streamId) {
+streamStorage.getStream = function (streamId) {
   return this.streams.get(streamId);
 };
 
-session.setActive = function (streamId, active = false) {
+streamStorage.setActive = function (streamId, active = false) {
   const stream = this.streams.get(streamId);
   if (stream.active === active) return;
 
   this.streams.set(streamId, { ...stream, active });
 };
 
-module.exports = session;
+module.exports = streamStorage;

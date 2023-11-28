@@ -9,7 +9,7 @@ const rtmpActions = require('./rtmp_actions');
 const utils = require('./utils');
 const Logger = require('../logger');
 
-const streamStorage = require('./global');
+const streamStorage = require('../session');
 
 let streamId = 'test';
 

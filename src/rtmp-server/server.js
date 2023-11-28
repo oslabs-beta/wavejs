@@ -10,7 +10,7 @@ const {
 const { partialMod } = require('./utils');
 
 const { config: baseConfig, state: baseState } = require('./_magic');
-const streamStorage = require('./global'); //maybe use this for close
+const streamStorage = require('../session'); //maybe use this for close
 
 //Run on Init
 
@@ -73,6 +73,4 @@ const Server = () => {
   };
 };
 
-const server = Server();
-
-server.run();
+module.exports = Server;
