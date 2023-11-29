@@ -7,6 +7,7 @@ const port = 8000;
 const server = 'http://localhost:8000';
 
 describe('Express App', () => {
+  // Test the root endpoint
   describe('GET /', () => {
     test('should return status 200 and serve the HTML file', async () => {
       const response = await request(App).get('/');
@@ -15,14 +16,14 @@ describe('Express App', () => {
     });
   });
 
-
+  // Start the server before running the tests
   beforeAll(() => {
     App.listen(port, () => {
       console.log('Listening on port', port);
     });
   });
 
-
+  // Close the server after running the tests
   afterAll((done) => {
     App.close(() => {
       done();
