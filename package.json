@@ -37,11 +37,11 @@
     "ffmpeg": "^0.0.4",
     "fluent": "^0.13.0",
     "fluent-ffmpeg": "^2.1.2",
+    "fluent-ffmpeg-multistream": "^1.0.0",
     "lodash": "^4.17.21",
-    "m3u8stream": "^0.8.6",
     "qs": "^6.11.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "ws": "^8.14.2"
+    "socketio": "^1.0.0"
   }
 }
