@@ -3,13 +3,10 @@ const fs = require('node:fs');
 const crypto = require('crypto');
 const { error, info } = require('./logger');
 
-const generateStreamId = () => {
-  const streamId = crypto.randomUUID();
-  info(`Your stream id is ${streamId}.`);
-}
 
-const FileController = (streamId) => {
-  let streamId = streamId;
+
+const FileController = (Id) => {
+  let streamId = Id;
   return {
     /* STREAM IDs */
     setStreamId(newId) {
@@ -24,33 +21,46 @@ const FileController = (streamId) => {
       return streamId;
     },
     /* HLS Methods*/
+    buildHLSDirPath() {
+      return path.join(__dirname, '../videoFiles', 'hls', streamId);
+    },
+    buildHLSPlaylistPath() {
+      path.join(this.buildHLSDirPath(streamId), 'manifest.m3u8');
+    },
     buildHLSDir() {
-      path.join(__dirname, '../videoFiles', streamId);
+      const path = this.buildHLSDirPath();
+      fs.mkdir(path, { recursive: true }, (err) => {
+        if (err) throw err;
+      });
     },
     deleteHLSDir() {
-      const path = buildHLSDirPath(streamId);
+      const path = this.buildHLSDirPath(streamId);
       fs.rmdir(path, {recursive: true}, (err) => {
         if (err) error('An error occurred while deleting the HLS directory.');
         else info('HLS directory successfully deleted.');
       })
     },
-    buildHLSPlaylistPath() {
-      path.join(buildHLSDirPath(streamId), 'manifest.m3u8');
-    },
+
     /* MPD Method */
-     buildMPDDir() {
-      path.join(__dirname, '../videoFiles', 'mpd', streamId);
+    buildMPDDirPath() {
+      return path.join(__dirname, '../videoFiles', 'mpd', streamId);
+    },
+    buildMPDPlaylistPath() {
+      path.join(this.buildMPDDirPath(streamId), 'manifest.mpd');
+    },
+    buildMPDDir() {
+      const path = this.buildMPDDirPath();
+      fs.mkdir(path, { recursive: true }, (err) => {
+        if (err) throw err;
+      });
     },
     deleteMPDDir() {
-      const path = buildHLSDirPath(streamId);
+      const path = this.buildMPDDirPath(streamId);
       fs.rmdir(path, {recursive: true}, (err) => {
-        if (err) error('An error occurred while deleting the MPD directory.');
+        if (err) error('An error occurred while deleting the HLS directory.');
         else info('HLS directory successfully deleted.');
       })
     },
-    buildMPDPlaylistPath() {
-      path.join(buildHLSDirPath(streamId), 'manifest.m3u8');
-    }
   };
 };
 
