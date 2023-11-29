@@ -8,30 +8,52 @@ const generateStreamId = () => {
   info(`Your stream id is ${streamId}.`);
 }
 
-const buildHLSDirPath = (streamId) =>
-  path.join(__dirname, '../videoFiles', streamId);
-
-const buildHLSPlaylistPath = (streamId) =>
-  path.join(buildHLSDirPath(streamId), 'manifest.m3u8');
-
-const buildHLSDir = (streamId) => {
-  const path = buildHLSDirPath(streamId);
-  fs.mkdir(path, { recursive: true }, (err) => {
-    if (err) throw err;
-  });
+const FileController = (streamId) => {
+  let streamId = streamId;
+  return {
+    /* STREAM IDs */
+    setStreamId(newId) {
+      streamId = newId
+    },
+    getStreamId() {
+      return streamId;
+    },
+    generateStreamId() {
+      const streamId = crypto.randomUUID();
+      info(`Your stream id is ${streamId}.`);
+      return streamId;
+    },
+    /* HLS Methods*/
+    buildHLSDir() {
+      path.join(__dirname, '../videoFiles', streamId);
+    },
+    deleteHLSDir() {
+      const path = buildHLSDirPath(streamId);
+      fs.rmdir(path, {recursive: true}, (err) => {
+        if (err) error('An error occurred while deleting the HLS directory.');
+        else info('HLS directory successfully deleted.');
+      })
+    },
+    buildHLSPlaylistPath() {
+      path.join(buildHLSDirPath(streamId), 'manifest.m3u8');
+    },
+    /* MPD Method */
+     buildMPDDir() {
+      path.join(__dirname, '../videoFiles', 'mpd', streamId);
+    },
+    deleteMPDDir() {
+      const path = buildHLSDirPath(streamId);
+      fs.rmdir(path, {recursive: true}, (err) => {
+        if (err) error('An error occurred while deleting the MPD directory.');
+        else info('HLS directory successfully deleted.');
+      })
+    },
+    buildMPDPlaylistPath() {
+      path.join(buildHLSDirPath(streamId), 'manifest.m3u8');
+    }
+  };
 };
 
-const buildHLSSegmentPath = (streamId, segment) => path.join(buildHLSDirPath(streamId), `manifest${segment}.ts`)
-
-//console.log(buildHLSPlaylistPath('test'));
-
-const deleteHLSDir = (streamId) => {
-  const path = buildHLSDirPath(streamId);
-  fs.rmdir(path, {recursive: true}, (err) => {
-    if (err) error('An error occurred while deleting the HLS directory.');
-    else info('HLS directory successfully deleted.');
-  })
-}
 
 module.exports = {
   generateStreamId,
