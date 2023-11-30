@@ -46,10 +46,12 @@ class ExpressServer {
     this.app.get(`/${this.config.endpoint}/:streamId/:m3u8`, (req, res) => {
       //this is the area where we need to connect fmpg to the server
       Logger.debug(`endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.m3u8}`)
-      
+      console.log(req.params.streamId)
       const stream = session.getStream(req.params.streamId);
+      const tempFix = '/Users/evan/Development/Codesmith/OSP/_main/wavejs/videoFiles/mvp-demo';
+
       Logger.debug(`stream: ${JSON.stringify(stream)}`)
-      const videoPath = `${stream.address}/${req.params.m3u8}`;
+      const videoPath = `${tempFix}/${req.params.m3u8}`;
       Logger.debug(`videoPath: ${videoPath}`)
       //'application/vnd.apple.mpegurl'
       res.status(200).set('Content-Type', contentTypes['.m3u8']);
