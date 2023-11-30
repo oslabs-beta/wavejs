@@ -59,26 +59,29 @@ class ExpressServer {
     this.app.get(`/${this.config.endpoint}/:streamId/:extension`, (req, res) => {
       //this is the area where we need to connect fmpg to the server
       Logger.debug(`endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.extension}`)
-      const stream = session.getStream(req.params.streamId);
-      Logger.debug(`stream: ${JSON.stringify(stream)}`)
-
       const ext = req.params.extension.split('.')[1]
-      let streamPath;
+      let videoPath;
       let contentType;
       if (ext === 'm3u8' || ext === 'ts') {
-        streamPath = session.getOutputStreamPath(req.params.streamId, 'hls');
+        videoPath = session.getOutputStreamPath(req.params.streamId, 'hls');
         contentType = contentTypes['.m3u8'];
       } else if (ext === 'mpd' || ext === 'm4s') {
-        streamPath = session.getOutputStreamPath(req.params.streamId, 'dash');
+        videoPath = session.getOutputStreamPath(req.params.streamId, 'dash');
         contentType = contentTypes['.mpd'];
       } else {
         Logger.error(`Requested extension not supported: ${ext}`);
         res.status(400).send("Bad Request")
       }
-      const videoPath = `${streamPath}/${req.params.extension}`;
+      
       Logger.debug(`videoPath: ${videoPath}`)
-      res.status(200).set('Content-Type', contentType);
-      fs.createReadStream(videoPath).pipe(res);
+      if (fs.existsSync(videoPath)) {
+        res.status(200).set('Content-Type', contentType);
+        fs.createReadStream(videoPath).pipe(res);
+      } else {
+        Logger.error('Stream isn\'t ready')
+        res.status(400).send('Stream isn\'t ready')
+      }
+      
     });
   }
 

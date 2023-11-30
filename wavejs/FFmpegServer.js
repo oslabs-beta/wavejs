@@ -58,6 +58,7 @@ class FFmpegServer {
     }
   }
   buildStream(outputPath) {
+    
     const stream = ffmpeg()
       .input(`rtmp://localhost/`, {timeout: 42300})
  
@@ -93,8 +94,9 @@ class FFmpegServer {
           'Input is ' + data.audio + ' audio ' + 'with ' + data.video + ' video'
         );
       })
-      .on('progress', function (progress) {
-        console.log('Processing: ' + JSON.stringify(progress));
+      .on('progress', (progress) =>{
+        //console.log('Processing: ' + JSON.stringify(progress));
+
       })
       // event handler for end of stream
       .on('end', async () => {
