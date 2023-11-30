@@ -1,10 +1,12 @@
 const ffmpeg = require('fluent-ffmpeg');
 const _ = require('lodash');
-const { buildHLSPlaylistPath, buildHLSDir } = require('./FileController');
-const session = require('./session');
+const FileController = require('./FileController');
+const streamStorage = require('./session');
+
+
+//TODO: Add support for MPEG-DASH specific output
 
 const streamConfig = {
-  session,
   endpoint: 'live',
   streamId: 'test',
 };
@@ -24,7 +26,8 @@ class FFmpegServer {
   constructor() {
     this.AVConfig = _.cloneDeep(videoAudioConfig);
     this.streamConfig = _.cloneDeep(streamConfig);
-    this.session = session;
+    this.session = streamStorage;
+    
   }
   configureStream(updatedConfig) {
     for (let key in updatedConfig) {
@@ -37,17 +40,14 @@ class FFmpegServer {
     }
   }
   listen() {
+    
     console.log(
       `🎥 FFmpeg Server starting at rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
     );
-    buildHLSDir(this.streamConfig.streamId);
-    this.stream = this.buildStream(
-      this.streamConfig.streamId,
-      this.streamConfig.endpoint,
-      this.streamConfig.session
-    );
     this.session.initOutputStream(this.streamConfig.streamId);
     this.session.addOutputStream(this.streamConfig.streamId, 'hls');
+    const output = this.session.getOutputStreamPath(this.streamConfig.streamId, 'hls')
+    this.stream = this.buildStream(output);
     this.stream.run();
   }
   close() {
@@ -57,7 +57,7 @@ class FFmpegServer {
       }, 10 * 1000);
     }
   }
-  buildStream() {
+  buildStream(outputPath) {
     const stream = ffmpeg(
       `rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`,
       {
@@ -84,11 +84,11 @@ class FFmpegServer {
       .addOption(
         `${this.AVConfig.hlsListSize[0]} ${this.AVConfig.hlsListSize[1]}`
       )
-      .output(buildHLSPlaylistPath(this.streamConfig.streamId))
+      .output(outputPath)
       .inputOptions('-listen 1')
-      // .on('start', (commandLine) => {
-      //   console.log('Spawned Ffmpeg with command: ' + commandLine);
-      // })
+      .on('start', (commandLine) => {
+        console.log('Spawned Ffmpeg with command: ' + commandLine);
+      })
       .on('codecData', function (data) {
         console.log(
           'Input is ' + data.audio + ' audio ' + 'with ' + data.video + ' video'
@@ -100,21 +100,24 @@ class FFmpegServer {
       // event handler for end of stream
       .on('end', function () {
         console.log('Success! Your live stream has been saved.');
-        session.setActive(this.streamConfig.streamId, false);
+        console.log(this.session)
+        // this.session.setOutputStreamActive(this.streamConfig.streamId, 'hls', false);
         process.exit(0);
       })
       // error handling
       .on('error', function (err) {
         console.log('An error occurred: ' + err.message);
-        session.setActive(this.streamConfig.streamId, false);
+        console.log(this.session)
+        // this.session.setOutputStreamActive(this.streamConfig.streamId, 'hls', false);
         process.exit(0);
       })
-      // .on('stderr', function (stderrLine) {
-      //   console.log('Stderr output: ' + stderrLine);
-      // })
+      .on('stderr', function (stderrLine) {
+        console.log('Stderr output: ' + stderrLine);
+      })
       .on('connection', () => {
         console.log('Someone Connected!');
-        session.setActive(this.streamConfig.streamId, true);
+        console.log(this.session)
+        // this.session.setOutputStreamActive(this.streamConfig.streamId, 'hls', true);
       });
     return stream;
   }

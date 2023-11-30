@@ -42,14 +42,16 @@ const streamStorage = {
     switch(protocol) {
       case 'dash': {
         const state = this.outputStreams.get(streamId);
-        state.streams.dash.address = state._fileController.buildMPDDirPath();
+        state.streams.dash.filePath = state._fileController.buildMPDDirPath();
+        state._fileController.buildMPDDir();
         state.streams.dash.active = active;
         this.outputStreams.set(streamId, state);
         break;
       }
       case 'hls': {
         const state = this.outputStreams.get(streamId);
-        state.streams.hls.address = state._fileController.buildHLSDirPath();
+        state.streams.hls.filePath = state._fileController.buildHLSDirPath();
+        state._fileController.buildHLSDir();
         state.streams.hls.active = active;
         this.outputStreams.set(streamId, state);
         break;
