@@ -15,6 +15,23 @@ const streamStorage = {
   retrieveStream(streamId) {
     return this.publisherStreams.get(streamId);
   },
+  addStream(streamId, active = true) {
+    this.streams.set(streamId, {
+      active,
+      address: buildHLSDirPath(streamId),
+    });
+    return;
+  },
+  getStream(streamId) {
+    return this.streams.get(streamId);
+  },
+  setActive(streamId, active = false) {
+    const stream = this.streams.get(streamId);
+    if (stream.active === active) return;
+  
+    this.streams.set(streamId, { ...stream, active });
+  },
+
 };
 
 /*
@@ -24,23 +41,5 @@ const streamStorage = {
   }
 */
 
-streamStorage.addStream = function (streamId, active = true) {
-  this.streams.set(streamId, {
-    active,
-    address: buildHLSDirPath(streamId),
-  });
-  return;
-};
-
-streamStorage.getStream = function (streamId) {
-  return this.streams.get(streamId);
-};
-
-streamStorage.setActive = function (streamId, active = false) {
-  const stream = this.streams.get(streamId);
-  if (stream.active === active) return;
-
-  this.streams.set(streamId, { ...stream, active });
-};
 
 module.exports = streamStorage;

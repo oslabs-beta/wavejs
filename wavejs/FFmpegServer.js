@@ -50,6 +50,8 @@ class FFmpegServer {
       this.streamConfig.session
     );
     this.session.addStream(this.streamConfig.streamId);
+    console.log('ffmpeg stream', this.streamConfig.streamId)
+    console.log(this.session.streams.get(this.streamConfig.streamId))
     this.stream.run();
   }
   close() {
@@ -101,13 +103,13 @@ class FFmpegServer {
         console.log('Processing: ' + JSON.stringify(progress));
       })
       // event handler for end of stream
-      .on('end', function () {
+      .on('end', () => {
         console.log('Success! Your live stream has been saved.');
         session.setActive(this.streamConfig.streamId, false);
         process.exit(0);
       })
       // error handling
-      .on('error', function (err) {
+      .on('error', (err) => {
         console.log('An error occurred: ' + err.message);
         session.setActive(this.streamConfig.streamId, false);
         process.exit(0);
