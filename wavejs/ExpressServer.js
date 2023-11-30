@@ -12,53 +12,58 @@ const contentTypes = {
   '.mpd': 'application/dash+xml',
 };
 
-
 class ExpressServer {
   constructor() {
     this.config = {
       port: 3000,
-      endpoint: 'wavejs'
-    }
+      endpoint: 'wavejs',
+    };
     this.app = express();
     this.session = session;
     this.app.disable('x-powered-by');
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(express.json());
     this.app.use(Logger.expressHttpLogger);
-
   }
   listen(port = this.config.port) {
-    if(port) this.configureOutput({port: port});
+    if (port) this.configureOutput({ port: port });
     this.registerRoutes();
     this.server = http.createServer(this.app);
     this.server.listen(this.config.port, () => {
-      console.log(`🚀 Express blasting off at http://localhost:${this.config.port}/${this.config.endpoint}`);
+      console.log(
+        `🚀 Express blasting off at http://localhost:${this.config.port}/${this.config.endpoint}`
+      );
     });
   }
   close() {
     this.server.close();
   }
-  configureOutput({ port, endpoint}) {
-    if (typeof port === 'number' && String(port).length === 4) this.config.port = port;
-    if (typeof endpoint === 'string' && endpoint.length > 2) this.config.endpoint = endpoint;
+  configureOutput({ port, endpoint }) {
+    if (typeof port === 'number' && String(port).length === 4)
+      this.config.port = port;
+    if (typeof endpoint === 'string' && endpoint.length > 2)
+      this.config.endpoint = endpoint;
   }
   registerRoutes() {
     this.app.get(`/${this.config.endpoint}/:streamId/:m3u8`, (req, res) => {
       //this is the area where we need to connect fmpg to the server
-      Logger.debug(`endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.m3u8}`)
-      console.log(req.params.streamId)
+      Logger.debug(
+        `endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.m3u8}`
+      );
+      console.log(req.params.streamId);
       const stream = session.getStream(req.params.streamId);
-      const tempFix = '/Users/evan/Development/Codesmith/OSP/_main/wavejs/videoFiles/mvp-demo';
+      //const tempFix = '/Users/evan/Development/Codesmith/OSP/_main/wavejs/videoFiles/mvp-demo';
+      const tempFix = '/Users/stephaniecummins/WAVE/wavejs/videoFiles/mvp-demo';
 
-      Logger.debug(`stream: ${JSON.stringify(stream)}`)
+      Logger.debug(`stream: ${JSON.stringify(stream)}`);
       const videoPath = `${tempFix}/${req.params.m3u8}`;
-      Logger.debug(`videoPath: ${videoPath}`)
+      Logger.debug(`videoPath: ${videoPath}`);
       //'application/vnd.apple.mpegurl'
       res.status(200).set('Content-Type', contentTypes['.m3u8']);
       fs.createReadStream(videoPath).pipe(res);
     });
     this.app.all('*', (req, res, next) => {
-      Logger.error(`404: ${req.baseUrl}`)
+      Logger.error(`404: ${req.baseUrl}`);
       res.status(404).send("😵 Can't find what you're looking for!");
     });
     this.app.use((err, req, res, next) => {
@@ -72,7 +77,6 @@ class ExpressServer {
     });
   }
 }
-
 
 // const expressServer = {}
 
