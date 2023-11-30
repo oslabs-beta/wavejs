@@ -1,0 +1,16 @@
+    .LiveStream{
+    max-width: 40%;
+    display: flexbox; 
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.header{
+    display: flex;
+    align-items: "center";
+    justify-content: "space-around";
+    margin: 0;
+    font-family: Arial;
+    background-color: white;
+
+}
