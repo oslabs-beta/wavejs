@@ -46,7 +46,8 @@ class FFmpegServer {
       this.streamConfig.endpoint,
       this.streamConfig.session
     );
-    this.session.addStream(this.streamConfig.streamId);
+    this.session.initOutputStream(this.streamConfig.streamId);
+    this.session.addOutputStream(this.streamConfig.streamId, 'hls');
     this.stream.run();
   }
   close() {

@@ -391,7 +391,11 @@ const rtmpAudioHandler = (config, state) => {
     payload.copy(state.audio.aacSequenceHeader);
     if (sound_format == 10) {
       //Logger.debug(state.audio)
-      let info = AV.readAACSpecificConfig(config, state, state.audio.aacSequenceHeader);
+      let info = AV.readAACSpecificConfig(
+        config,
+        state,
+        state.audio.aacSequenceHeader
+      );
       state.audio.profileName = AV.getAACProfileName(info);
       state.audio.sampleRate = info.sample_rate;
       state.audio.channels = info.channels;
@@ -427,11 +431,11 @@ const rtmpAudioHandler = (config, state) => {
     }
   }
   //our stream handler
-  const pubStreamId = `${state.id}_${state.connect.appname}`
-  if (streamStorage.retrieveStream(pubStreamId) === undefined) {
-    streamStorage.initializeStream(pubStreamId); //IMPORTANT this has to come
+  const pubStreamId = `${state.id}_${state.connect.appname}`;
+  if (streamStorage.retrievePublisherStream(pubStreamId) === undefined) {
+    streamStorage.initializePublisherStream(pubStreamId); //IMPORTANT this has to come
   }
-  let streamStore = streamStorage.retrieveStream(pubStreamId);
+  let streamStore = streamStorage.retrievePublisherStream(pubStreamId);
   if (streamStore.numPlayCache === 0) {
     streamStore.res.cork();
   }
@@ -600,11 +604,11 @@ const rtmpVideoHandler = (config, state) => {
     }
   }
   //our stream handler
-  const pubStreamId = `${state.id}_${state.connect.appname}`
-  if (streamStorage.retrieveStream(pubStreamId) === undefined) {
-    streamStorage.initializeStream(pubStreamId); //IMPORTANT this has to come
+  const pubStreamId = `${state.id}_${state.connect.appname}`;
+  if (streamStorage.retrievePublisherStream(pubStreamId) === undefined) {
+    streamStorage.initializePublisherStream(pubStreamId); //IMPORTANT this has to come
   }
-  let streamStore = streamStorage.retrieveStream(pubStreamId);
+  let streamStore = streamStorage.retrievePublisherStream(pubStreamId);
   if (streamStore.numPlayCache === 0) {
     streamStore.res.cork();
   }
@@ -679,13 +683,12 @@ const rtmpDataHandler = (config, state) => {
       let rtmpChunks = utils.rtmpChunksCreate(config, state, packet);
       //let flvTag = NodeFlvSession.createFlvTag(packet);
 
+      const pubStreamId = `${state.id}_${state.connect.appname}`;
 
-      const pubStreamId = `${state.id}_${state.connect.appname}`
-
-      if (streamStorage.retrieveStream(pubStreamId) === undefined) {
-        streamStorage.initializeStream(pubStreamId); //IMPORTANT this has to come
+      if (streamStorage.retrievePublisherStream(pubStreamId) === undefined) {
+        streamStorage.initializePublisherStream(pubStreamId); //IMPORTANT this has to come
       }
-      let streamStore = streamStorage.retrieveStream(pubStreamId);
+      let streamStore = streamStorage.retrievePublisherStream(pubStreamId);
       rtmpChunks.writeUInt32LE(pubStreamId, 8); //this needs to come from the socket
       streamStore.res.write(rtmpChunks);
 
@@ -796,10 +799,7 @@ const onConnect = (config, state, invokeMessage) => {
 };
 
 const onCreateStream = (config, state, invokeMessage) => {
-  rtmpActions.respondCreateStream(
-    config, state,
-    invokeMessage.transId,
-  );
+  rtmpActions.respondCreateStream(config, state, invokeMessage.transId);
 };
 
 const onPublish = (config, state, invokeMessage) => {
@@ -813,7 +813,7 @@ const onPublish = (config, state, invokeMessage) => {
   );
   state.streams.publish.id = state.parserPacket.header.stream_id;
   // context.nodeEvent.emit('prePublish', this.id, this.publishStreamPath, this.publishArgs);
-  const pubStreamId = `${state.id}_${state.connect.appname}`
+  const pubStreamId = `${state.id}_${state.connect.appname}`;
   if (!state.status.isStarting) {
     return;
   }
@@ -830,12 +830,30 @@ const onPublish = (config, state, invokeMessage) => {
   if (streamStorage.publishers.has(state.streams.publish.path)) {
     reject(config, state);
     //logger goes here
-    Logger.info(`[rtmp publish] Already has a stream. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.publish.streams.id}`);
-    rtmpActions.sendStatusMessage(config, state, state.streams.publish.id, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
+    Logger.info(
+      `[rtmp publish] Already has a stream. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.publish.streams.id}`
+    );
+    rtmpActions.sendStatusMessage(
+      config,
+      state,
+      state.streams.publish.id,
+      'error',
+      'NetStream.Publish.BadName',
+      'Stream already publishing'
+    );
   } else if (state.status.isPublishing) {
     //Logger goes here
-    Logger.info(`[rtmp publish] NetConnection is publishing. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.streams.publish.id}`);
-    rtmpActions.sendStatusMessage(config, state, state.streams.publish.id, 'error', 'NetStream.Publish.BadConnection', 'Connection already publishing');
+    Logger.info(
+      `[rtmp publish] NetConnection is publishing. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.streams.publish.id}`
+    );
+    rtmpActions.sendStatusMessage(
+      config,
+      state,
+      state.streams.publish.id,
+      'error',
+      'NetStream.Publish.BadConnection',
+      'Connection already publishing'
+    );
   } else {
     //loggert goes here
     // Logger.info(`[rtmp publish] New stream. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId}`);
@@ -843,7 +861,8 @@ const onPublish = (config, state, invokeMessage) => {
     state.status.isPublishing = true;
 
     rtmpActions.sendStatusMessage(
-      config,state,
+      config,
+      state,
       state.streams.publish.id,
       'status',
       'NetStream.Publish.Start',
@@ -903,13 +922,19 @@ const onDeleteStream = (config, state, invokeMessage) => {
   if (invokeMessage.streamId == state.streams.publish.id) {
     if (state.status.isPublishing) {
       //logging goes here
-      Logger.info(`[rtmp publish] Close stream. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.streams.publish.id}`);
+      Logger.info(
+        `[rtmp publish] Close stream. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.streams.publish.id}`
+      );
       // context.nodeEvent.emit('donePublish', this.id, this.publishStreamPath, this.publishArgs);
-      Logger.info(`[rtmp publish] global streams: publishers: ${
-        JSON.stringify(Array.from(streamStorage.publishers.entries()))}`)
+      Logger.info(
+        `[rtmp publish] global streams: publishers: ${JSON.stringify(
+          Array.from(streamStorage.publishers.entries())
+        )}`
+      );
       if (state.status.isStarting) {
         rtmpActions.sendStatusMessage(
-          config, state,
+          config,
+          state,
           state.streams.publish.id,
           'status',
           'NetStream.Unpublish.Success',
@@ -951,7 +976,7 @@ const onDeleteStream = (config, state, invokeMessage) => {
 };
 
 const stop = (config, state) => {
-  const pubStreamId = `${state.id}_${state.connect.appname}`
+  const pubStreamId = `${state.id}_${state.connect.appname}`;
   if (state.status.isStarting) {
     state.status.isStarting = false;
 
@@ -973,10 +998,10 @@ const stop = (config, state) => {
     state.connect.cmdObj.bytesWritten = state.socket.bytesWritten;
     state.connect.cmdObj.bytesRead = state.socket.bytesRead;
     //context.nodeEvent.emit('doneConnect', this.id, this.connectCmdObj);
-    Logger.info('made it to end of stop')
+    Logger.info('made it to end of stop');
     streamStorage.publisherStreams.delete(pubStreamId);
     state.socket.destroy();
-    
+
     return;
   }
 };

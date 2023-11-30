@@ -45,17 +45,7 @@ class ExpressServer {
     if (typeof endpoint === 'string' && endpoint.length > 2) this.config.endpoint = endpoint;
   }
   registerRoutes() {
-    this.app.get(`/${this.config.endpoint}/:streamId/:m3u8`, (req, res) => {
-      //this is the area where we need to connect fmpg to the server
-      Logger.debug(`endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.m3u8}`)
-      const stream = session.getStream(req.params.streamId);
-      Logger.debug(`stream: ${JSON.stringify(stream)}`)
-      const videoPath = `${stream.address}/${req.params.m3u8}`;
-      Logger.debug(`videoPath: ${videoPath}`)
-      //'application/vnd.apple.mpegurl'
-      res.status(200).set('Content-Type', contentTypes['.m3u8']);
-      fs.createReadStream(videoPath).pipe(res);
-    });
+    this.dynamicRoute();
     this.app.all('*', (req, res, next) => {
       Logger.error(`404: ${req.baseUrl}`)
       res.status(404).send("😵 Can't find what you're looking for!");
@@ -65,6 +55,33 @@ class ExpressServer {
       res.status(500).send('☠️ Something Broke!');
     });
   }
+  dynamicRoute(){
+    this.app.get(`/${this.config.endpoint}/:streamId/:extension`, (req, res) => {
+      //this is the area where we need to connect fmpg to the server
+      Logger.debug(`endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.extension}`)
+      const stream = session.getStream(req.params.streamId);
+      Logger.debug(`stream: ${JSON.stringify(stream)}`)
+
+      const ext = req.params.extension.split('.')[1]
+      let streamPath;
+      let contentType;
+      if (ext === 'm3u8' || ext === 'ts') {
+        streamPath = session.getOutputStreamPath(req.params.streamId, 'hls');
+        contentType = contentTypes['.m3u8'];
+      } else if (ext === 'mpd' || ext === 'm4s') {
+        streamPath = session.getOutputStreamPath(req.params.streamId, 'dash');
+        contentType = contentTypes['.mpd'];
+      } else {
+        Logger.error(`Requested extension not supported: ${ext}`);
+        res.status(400).send("Bad Request")
+      }
+      const videoPath = `${streamPath}/${req.params.extension}`;
+      Logger.debug(`videoPath: ${videoPath}`)
+      res.status(200).set('Content-Type', contentType);
+      fs.createReadStream(videoPath).pipe(res);
+    });
+  }
+
   debug() {
     this.app.get('/streams', (req, res) => {
       res.status(200).json(Object.fromEntries(session.streams));
