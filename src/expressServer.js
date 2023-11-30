@@ -5,7 +5,7 @@ const path = require('path');
 const m3u8stream = require('m3u8stream');
 const { buildHLSDirPath, buildHLSSegmentPath } = require('./fileController');
 const session = require('./session');
-
+const cors = require('cors')
 const { expressHttpLogger } = require('./logger');
 
 
@@ -20,7 +20,8 @@ const PORT = 3000;
 const expressServer = (session, endpoint) => {
   
   const app = express();
-
+  
+  app.use(cors())
   /* initial config */
   app.disable('x-powered-by');
 

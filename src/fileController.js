@@ -12,7 +12,7 @@ const buildHLSDirPath = (streamId) =>
   path.join(__dirname, '../videoFiles', streamId);
 
 const buildHLSPlaylistPath = (streamId) =>
-  path.join(buildHLSDirPath(streamId), 'manifest.m3u8');
+  path.join(buildHLSDirPath(streamId), 'manifest.mpd');
 
 const buildHLSDir = (streamId) => {
   const path = buildHLSDirPath(streamId);
