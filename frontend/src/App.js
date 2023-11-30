@@ -35,7 +35,7 @@ export default function App() {
         marginLeft:"auto", 
         marginRight:"auto"
         }}>
-          <source src="http://localhost:3000/wavejs/mvp-test/manifest.m3u8" type="application/x-mpegURL" />
+          <source src="http://localhost:3000/wavejs/mvp-demo/manifest.m3u8" type="application/x-mpegURL" />
           {/* <source src="https://archive.org/download/ElephantsDream/ed_hd.ogv" type="video/ogg" /> */}
         </video>
     )

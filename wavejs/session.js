@@ -63,6 +63,7 @@ const streamStorage = {
   getOutputStreamPath(streamId, protocol) {
     if (!this.supportedOutputFormats.includes(protocol)) throw new Error(`Stream Storage: protocol of '${protocol}' not included in accepted formats: ${this.supportedOutputFormats.join(', ')}}`);
     const state = this.outputStreams.get(streamId);
+    if (state === undefined) throw new Error('StreamID hasnt\'t been created yet');
     switch(protocol) {
       case "dash": {
         return state.streams.dash.filePath;

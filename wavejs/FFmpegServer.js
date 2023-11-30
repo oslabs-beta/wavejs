@@ -24,10 +24,10 @@ const videoAudioConfig = {
 };
 
 class FFmpegServer {
-  constructor() {
+  constructor(session) {
     this.AVConfig = _.cloneDeep(videoAudioConfig);
     this.streamConfig = _.cloneDeep(streamConfig);
-    this.session = streamStorage;
+    this.session = session
     this.streams = {}
   }
   configureStream(updatedConfig) {
@@ -174,10 +174,10 @@ class FFmpegServer {
           'Input is ' + data.audio + ' audio ' + 'with ' + data.video + ' video'
         );
       })
-      .on('progress', (progress) =>{
-        console.log('Processing: ' + JSON.stringify(progress));
+      // .on('progress', (progress) =>{
+      //   console.log('Processing: ' + JSON.stringify(progress));
 
-      })
+      // })
       // event handler for end of stream
       .on('end', async () => {
         console.log('Success! Your live stream has been saved.');
@@ -191,9 +191,9 @@ class FFmpegServer {
         this.session.setOutputStreamActive(this.streamConfig.streamId, 'hls', false);
         process.exit(0);
       })
-      .on('stderr', function (stderrLine) {
-        console.log('Stderr output: ' + stderrLine);
-      })
+      // .on('stderr', function (stderrLine) {
+      //   console.log('Stderr output: ' + stderrLine);
+      // })
       .on('connection', () => {
         console.log('Someone Connected!');
 
