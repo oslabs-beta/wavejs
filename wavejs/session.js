@@ -1,4 +1,4 @@
-const { buildHLSDirPath } = require('./fileController');
+const { buildHLSDirPath } = require('./FileController');
 const { PassThrough } = require('node:stream');
 
 const streamStorage = {
@@ -11,7 +11,7 @@ const streamStorage = {
       numPlayCache: 0,
     });
   },
-  
+
   retrieveStream(streamId) {
     return this.publisherStreams.get(streamId);
   },

@@ -1,6 +1,6 @@
 const ffmpeg = require('fluent-ffmpeg');
-const _ = require('lodash')
-const { buildHLSPlaylistPath, buildHLSDir } = require('./fileController');
+const _ = require('lodash');
+const { buildHLSPlaylistPath, buildHLSDir } = require('./FileController');
 const session = require('./session');
 
 const streamConfig = {
@@ -51,7 +51,9 @@ class FFmpegServer {
   }
   close() {
     if (this.stream) {
-      setTimeout(()=>{this.stream.kill()}, 10*1000)
+      setTimeout(() => {
+        this.stream.kill();
+      }, 10 * 1000);
     }
   }
   buildStream() {
@@ -116,7 +118,6 @@ class FFmpegServer {
     return stream;
   }
 }
-
 
 module.exports = FFmpegServer;
 

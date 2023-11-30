@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('node:http');
 const fs = require('node:fs');
 const session = require('./session');
-
+const cors = require('cors')
 const Logger = require('./logger');
 
 const contentTypes = {
@@ -25,13 +25,14 @@ class ExpressServer {
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(express.json());
     this.app.use(Logger.expressHttpLogger);
+    this.app.use(cors())
 
   }
   listen(port = this.config.port) {
     if(port) this.configureOutput({port: port});
     this.registerRoutes();
     this.server = http.createServer(this.app);
-    console.l
+    
     this.server.listen(this.config.port, () => {
       console.log(`🚀 Express blasting off at http://localhost:${this.config.port}/${this.config.endpoint}`);
     });
