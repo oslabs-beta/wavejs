@@ -31,7 +31,6 @@ class ExpressServer {
     if(port) this.configureOutput({port: port});
     this.registerRoutes();
     this.server = http.createServer(this.app);
-    console.l
     this.server.listen(this.config.port, () => {
       console.log(`🚀 Express blasting off at http://localhost:${this.config.port}/${this.config.endpoint}`);
     });
@@ -47,6 +46,7 @@ class ExpressServer {
     this.app.get(`/${this.config.endpoint}/:streamId/:m3u8`, (req, res) => {
       //this is the area where we need to connect fmpg to the server
       Logger.debug(`endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.m3u8}`)
+      
       const stream = session.getStream(req.params.streamId);
       Logger.debug(`stream: ${JSON.stringify(stream)}`)
       const videoPath = `${stream.address}/${req.params.m3u8}`;
