@@ -65,10 +65,10 @@ const streamStorage = {
     const state = this.outputStreams.get(streamId);
     switch(protocol) {
       case "dash": {
-        return state._fileController.buildMPDPlaylistPath();
+        return state.streams.dash.filePath;
       }
       case 'hls': {
-        return state._fileController.buildHLSPlaylistPath();
+        return state.streams.hls.filePath;
       }
       default:
         throw new Error(`StreamStorage: protocol of ${protocol} not accepted.`);

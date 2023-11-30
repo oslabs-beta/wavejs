@@ -55,23 +55,28 @@ class ExpressServer {
       res.status(500).send('☠️ Something Broke!');
     });
   }
+
   dynamicRoute(){
     this.app.get(`/${this.config.endpoint}/:streamId/:extension`, (req, res) => {
       //this is the area where we need to connect fmpg to the server
       Logger.debug(`endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.extension}`)
       const ext = req.params.extension.split('.')[1]
-      let videoPath;
+      let videoPath, streamPath;
       let contentType;
       if (ext === 'm3u8' || ext === 'ts') {
-        videoPath = session.getOutputStreamPath(req.params.streamId, 'hls');
+        streamPath = session.getOutputStreamPath(req.params.streamId, 'hls');
         contentType = contentTypes['.m3u8'];
+        videoPath = `${streamPath}/${req.params.extension}`
       } else if (ext === 'mpd' || ext === 'm4s') {
-        videoPath = session.getOutputStreamPath(req.params.streamId, 'dash');
+        streamPath = session.getOutputStreamPath(req.params.streamId, 'dash');
         contentType = contentTypes['.mpd'];
+        videoPath = `${streamPath}/${req.params.extension}`
       } else {
         Logger.error(`Requested extension not supported: ${ext}`);
         res.status(400).send("Bad Request")
       }
+
+      // const videoPath = `${stream.address}/${req.params.m3u8}`;
       
       Logger.debug(`videoPath: ${videoPath}`)
       if (fs.existsSync(videoPath)) {
