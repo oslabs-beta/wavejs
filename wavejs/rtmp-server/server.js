@@ -17,7 +17,6 @@ const { config: baseConfig, state: baseState } = require('./_magic');
 const streamStorage = require('../session'); //maybe use this for close
 
 //Run on Init
-
 const Server = () => {
   //get initial state for server
   const config = _.cloneDeep(baseConfig);
@@ -45,8 +44,6 @@ const Server = () => {
     };
 
     const newPort = portGenerator();
-    console.log(newPort);
-    console.log(typeof newPort);
 
     const ffmpegServer = new FFmpegServer(newPort);
     ffmpegServer.configureAV({ hlsListSize: ['-hls_list_size', '0'] });
@@ -54,64 +51,71 @@ const Server = () => {
       endpoint: 'wavejs',
       streamId: String(newPort),
     });
-    //ffmpegServer.configureStream({ endpoint: 'wavejs', streamId: 'mvp-demo' });
     ffmpegServer.listen();
 
     let writeSocket = undefined;
-    //const writeSocket = new net.Socket();
 
     function checkIfPortIsOpen() {
       const portInterval = setInterval(checkPort, 500);
       function checkPort() {
-        if (net.isListening(newPort)) {
-          clearInterval(portInterval);
+        try {
           writeSocket = net.createConnection(newPort, '127.0.0.1', () => {
             console.log(`${newPort} is connected!`);
           });
+          // writeSocket.on('close', () => {
+          //   ffmpegServer.close();
+          //   console.log(`Livestreaming on port ${newPort} complete!`);
+          // });
           writeSocket.on('error', (err) => {
             console.log('WriteSocket ERROR!', err);
           });
+          clearInterval(portInterval);
+        } catch (err) {
+          console.log('Port is not open yet');
         }
       }
     }
 
-    checkIfPortIsOpen();
-
-    // function checkPort() {
-    //   if (net.is_listening(newPort)) {
-    //     clearInterval(portInterval);
+    // const checkIfPortIsOpen = () => {
+    //   const portInterval = setInterval(checkPort, 500);
+    //   function checkPort() {
+    //     try {
+    //       writeSocket = net.createConnection(newPort, '127.0.0.1', () => {
+    //         console.log(`${newPort} is connected!`);
+    //       });
+    //       writeSocket.on('close', () => {
+    //         ffmpegServer.close();
+    //         console.log(`Livestreaming on port ${newPort} complete!`);
+    //       });
+    //       writeSocket.on('error', (err) => {
+    //         console.log('WriteSocket ERROR!', err);
+    //       });
+    //       clearInterval(portInterval);
+    //     } catch (err) {
+    //       console.log('Port is not open yet');
+    //     }
+    //   }
+    // const checkPort = () => {
+    //   try {
     //     writeSocket = net.createConnection(newPort, '127.0.0.1', () => {
     //       console.log(`${newPort} is connected!`);
+    //     });
+    //     writeSocket.on('close', () => {
+    //       ffmpegServer.close();
+    //       console.log(`Livestreaming on port ${newPort} complete!`);
     //     });
     //     writeSocket.on('error', (err) => {
     //       console.log('WriteSocket ERROR!', err);
     //     });
+    //     clearInterval(portInterval);
+    //   } catch (err) {
+    //     console.log('Port is not open yet');
     //   }
-    // }
+    // };
+    // const portInterval = setInterval(checkPort, 500);
+    // };
 
-    // Need to wait for port to be open before writing to it...
-    setTimeout(() => {
-      writeSocket = net.createConnection(newPort, '127.0.0.1', () => {
-        console.log(`${newPort} is connected!`);
-      });
-      writeSocket.on('error', (err) => {
-        console.log('WriteSocket ERROR!', err);
-        // writeSocket.connect(55555, 'localhost', () => {
-        //   console.log(`${newPort} is connected!`);
-        // });
-      });
-
-      // writeSocket.connect(newPort, 'localhost', () => {
-      //   console.log(`${newPort} is connected!`);
-      // });
-    }, 2000);
-
-    // writeSocket.on('error', (err) => {
-    //   console.log('WriteSocket ERROR!', err);
-    //   // writeSocket.connect(55555, 'localhost', () => {
-    //   //   console.log(`${newPort} is connected!`);
-    //   // });
-    // });
+    checkIfPortIsOpen();
 
     let cachedData = undefined;
 
