@@ -54,6 +54,7 @@
     "node": "^21.1.0",
     "qs": "^6.11.2",
     "react": "^18.2.0",
+    "react-device-detect": "^2.2.3",
     "react-dom": "^18.2.0",
     "shaka-player": "^4.6.2",
     "shaka-player-react": "^1.1.5",
