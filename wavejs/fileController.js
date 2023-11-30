@@ -1,5 +1,5 @@
 const path = require('node:path');
-const fs = require('node:fs');
+const fs = require('node:fs').promises;
 const crypto = require('node:crypto');
 const { error, info } = require('./logger');
 
@@ -26,44 +26,53 @@ class FileController {
   }
   /* HLS Methods */
   buildHLSDirPath() {
-    return path.join(__dirname, this._mediaRoot, 'hls', this._streamId);
+    return path.join(__dirname, this._mediaRoot, this._streamId, 'hls');
   }
   buildHLSPlaylistPath() {
     return path.join(this.buildHLSDirPath(), 'manifest.m3u8');
   }
-  buildHLSDir() {
+  async buildHLSDir() {
     const path = this.buildHLSDirPath();
-    fs.mkdir(path, { recursive: true }, (err) => {
-      if (err) throw err;
-    });
+    try {
+      await fs.mkdir(path, { recursive: true });
+    } catch(err) {
+      error(err);
+    }
+    
   }
-  deleteHLSDir() {
+  async deleteHLSDir() {
     const path = this.buildHLSDirPath();
-    fs.rmdir(path, {recursive: true}, (err) => {
-      if (err) error('An error occurred while deleting the HLS directory.');
-      else info('HLS directory successfully deleted.');
-    })
+    info(path)
+    try {
+      await fs.rm(path, {recursive: true, force: true});
+    } catch(err) {
+      error(err)
+    }
+    info('deleteHLSDirCallled')
   }
 
   /* MPD Methods */
   buildMPDDirPath() {
-    return path.join(__dirname, this._mediaRoot, 'mpd', this._streamId);
+    return path.join(__dirname, this._mediaRoot, this._streamId, 'mpd');
   }
   buildMPDPlaylistPath() {
     return path.join(this.buildMPDDirPath(), 'manifest.mpd');
   }
-  buildMPDDir() {
+  async buildMPDDir() {
     const path = this.buildMPDDirPath();
-    fs.mkdir(path, { recursive: true }, (err) => {
-      if (err) throw err;
-    });
+    try {
+      await fs.mkdir(path, { recursive: true });
+    } catch(err) {
+      error(err);
+    }
   }
-  deleteMPDDir() {
+  async deleteMPDDir() {
     const path = this.buildMPDDirPath();
-    fs.rmdir(path, {recursive: true}, (err) => {
-      if (err) error('An error occurred while deleting the HLS directory.');
-      else info('HLS directory successfully deleted.');
-    })
+    try {
+      await fs.rm(path, {recursive: true, force: true});
+    } catch(err) {
+      error(err)
+    }
   }
 };
 

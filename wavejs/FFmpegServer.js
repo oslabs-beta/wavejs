@@ -58,12 +58,11 @@ class FFmpegServer {
     }
   }
   buildStream(outputPath) {
-    const stream = ffmpeg(
-      `rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`,
-      {
-        timeout: 432000,
-      }
-    )
+    const stream = ffmpeg()
+      .input(`rtmp://localhost/`, {timeout: 42300})
+ 
+      .inputOption('-rtmp_app', `${this.streamConfig.endpoint}/${this.streamConfig.streamId}`)
+  
       // set video bitrate
       .videoBitrate(this.AVConfig.videoBitrate)
       // set h264 preset
@@ -86,9 +85,9 @@ class FFmpegServer {
       )
       .output(outputPath)
       .inputOptions('-listen 1')
-      .on('start', (commandLine) => {
-        console.log('Spawned Ffmpeg with command: ' + commandLine);
-      })
+      // .on('start', (commandLine) => {
+      //   console.log('Spawned Ffmpeg with command: ' + commandLine);
+      // })
       .on('codecData', function (data) {
         console.log(
           'Input is ' + data.audio + ' audio ' + 'with ' + data.video + ' video'
@@ -98,26 +97,25 @@ class FFmpegServer {
         console.log('Processing: ' + JSON.stringify(progress));
       })
       // event handler for end of stream
-      .on('end', function () {
+      .on('end', async () => {
         console.log('Success! Your live stream has been saved.');
-        console.log(this.session)
-        // this.session.setOutputStreamActive(this.streamConfig.streamId, 'hls', false);
+        this.session.setOutputStreamActive(this.streamConfig.streamId, 'hls', false);
+        await this.session.deleteOutputStream(this.streamConfig.streamId, 'hls')
         process.exit(0);
       })
       // error handling
-      .on('error', function (err) {
+      .on('error', (err) => {
         console.log('An error occurred: ' + err.message);
-        console.log(this.session)
-        // this.session.setOutputStreamActive(this.streamConfig.streamId, 'hls', false);
+        this.session.setOutputStreamActive(this.streamConfig.streamId, 'hls', false);
         process.exit(0);
       })
-      .on('stderr', function (stderrLine) {
-        console.log('Stderr output: ' + stderrLine);
-      })
+      // .on('stderr', function (stderrLine) {
+      //   console.log('Stderr output: ' + stderrLine);
+      // })
       .on('connection', () => {
         console.log('Someone Connected!');
-        console.log(this.session)
-        // this.session.setOutputStreamActive(this.streamConfig.streamId, 'hls', true);
+
+        this.session.setOutputStreamActive(this.streamConfig.streamId, 'hls', true);
       });
     return stream;
   }

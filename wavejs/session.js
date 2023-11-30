@@ -65,10 +65,10 @@ const streamStorage = {
     const state = this.outputStreams.get(streamId);
     switch(protocol) {
       case "dash": {
-        return state.streams.dash.filePath;
+        return state._fileController.buildMPDPlaylistPath();
       }
       case 'hls': {
-        return state.streams.hls.filePath
+        return state._fileController.buildHLSPlaylistPath();
       }
       default:
         throw new Error(`StreamStorage: protocol of ${protocol} not accepted.`);
@@ -93,6 +93,22 @@ const streamStorage = {
           this.outputStreams.set(streamId, state);
           return;
         }
+      }
+      default:
+        throw new Error(`StreamStorage: protocol of ${protocol} not accepted.`);
+    }
+  },
+  async deleteOutputStream(streamId, protocol) {
+    if (!this.supportedOutputFormats.includes(protocol)) throw new Error(`Stream Storage: protocol of '${protocol}' not included in accepted formats: ${this.supportedOutputFormats.join(', ')}}`);
+    const state = this.outputStreams.get(streamId);
+    switch (protocol) {
+      case "dash": {
+        await state._fileController.deleteMPDDir();
+       return;
+      }
+      case 'hls': {
+       await state._fileController.deleteHLSDir();
+       return;
       }
       default:
         throw new Error(`StreamStorage: protocol of ${protocol} not accepted.`);
