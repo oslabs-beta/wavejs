@@ -1,5 +1,5 @@
 const ffmpeg = require('fluent-ffmpeg');
-const _ = require('lodash')
+const _ = require('lodash');
 const { buildHLSPlaylistPath, buildHLSDir } = require('./fileController');
 const session = require('./session');
 
@@ -21,10 +21,11 @@ const videoAudioConfig = {
 };
 
 class FFmpegServer {
-  constructor() {
+  constructor(port) {
     this.AVConfig = _.cloneDeep(videoAudioConfig);
     this.streamConfig = _.cloneDeep(streamConfig);
     this.session = session;
+    this.port = port;
   }
   configureStream(updatedConfig) {
     for (let key in updatedConfig) {
@@ -38,7 +39,9 @@ class FFmpegServer {
   }
   listen() {
     console.log(
-      `🎥 FFmpeg Server starting at rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
+      `🎥 FFmpeg Server starting at rtmp://localhost:${this.port}`
+
+      //`🎥 FFmpeg Server starting at rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
     );
     buildHLSDir(this.streamConfig.streamId);
     this.stream = this.buildStream(
@@ -51,12 +54,15 @@ class FFmpegServer {
   }
   close() {
     if (this.stream) {
-      setTimeout(()=>{this.stream.kill()}, 10*1000)
+      setTimeout(() => {
+        this.stream.kill();
+      }, 10 * 1000);
     }
   }
   buildStream() {
     const stream = ffmpeg(
-      `rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`,
+      `rtmp://127.0.0.1:${this.port}`,
+      //`rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`,
       {
         timeout: 432000,
       }
@@ -116,7 +122,6 @@ class FFmpegServer {
     return stream;
   }
 }
-
 
 module.exports = FFmpegServer;
 
