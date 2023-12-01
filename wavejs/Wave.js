@@ -6,11 +6,11 @@ const { Server } = require('./rtmp-server');
 
 class WaveJS {
   constructor() {
-    this.expressServer = new ExpressServer();
-    this.ffmpegServer = new FFMpegServer(1111);
+    this.session = session;
+    this.expressServer = new ExpressServer(this.session);
+    this.ffmpegServer = new FFMpegServer(this.session);
     this.rtmpServer = Server();
     //this.rtmpServer = new RTMPServer()
-    this.session = session;
   }
   configureAV(updatedSettings) {
     this.ffmpegServer.configureAV(updatedSettings);
