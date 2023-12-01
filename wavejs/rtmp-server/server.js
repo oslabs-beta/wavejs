@@ -7,6 +7,7 @@ const Logger = require('../logger');
 
 const MINIMUM_PORT = 1024;
 const MAXIMUM_PORT = 49151;
+const LOCALHOST_ADDRESS = '127.0.0.1';
 
 const {
   onSocketData: baseOnSocketData,
@@ -38,10 +39,17 @@ const Server = () => {
 
     // Generate a random port (localhost ports 1024 to 49151 are available for use)
     const portGenerator = () => {
-      return (
-        Math.floor(Math.random() * (MAXIMUM_PORT - MINIMUM_PORT + 1)) +
-        MINIMUM_PORT
-      );
+      const randomPortNumber = () => {
+        return (
+          Math.floor(Math.random() * (MAXIMUM_PORT - MINIMUM_PORT + 1)) +
+          MINIMUM_PORT
+        );
+      };
+      let portNumber;
+      do {
+        portNumber = randomPortNumber();
+      } while (streamStorage.checkForActiveFfmpegPorts(portNumber));
+      return portNumber;
     };
 
     const newPort = portGenerator();
@@ -67,7 +75,7 @@ const Server = () => {
         try {
           if (retry) {
             retry = false;
-            writeSocket.connect(newPort, '127.0.0.1', () => {
+            writeSocket.connect(newPort, LOCALHOST_ADDRESS, () => {
               console.log(`${newPort} is connected!`);
               clearInterval(portInterval);
             });
