@@ -80,63 +80,6 @@ const Server = () => {
       const portInterval = setInterval(checkPort, 500);
     };
 
-    // function checkIfPortIsOpen() {
-    //   const portInterval = setInterval(checkPort, 500);
-    //   function checkPort() {
-    //     try {
-    //       if (retry) {
-    //         retry = false;
-    //         writeSocket.connect(newPort, '127.0.0.1', () => {
-    //           console.log(`${newPort} is connected!`);
-    //           clearInterval(portInterval);
-    //         });
-    //       }
-    //     } catch (err) {
-    //       retry = true;
-    //       console.log('Port is not open yet');
-    //     }
-    //   }
-    // }
-
-    // const checkIfPortIsOpen = () => {
-    //   const portInterval = setInterval(checkPort, 500);
-    //   function checkPort() {
-    //     try {
-    //       writeSocket = net.createConnection(newPort, '127.0.0.1', () => {
-    //         console.log(`${newPort} is connected!`);
-    //       });
-    //       writeSocket.on('close', () => {
-    //         ffmpegServer.close();
-    //         console.log(`Livestreaming on port ${newPort} complete!`);
-    //       });
-    //       writeSocket.on('error', (err) => {
-    //         console.log('WriteSocket ERROR!', err);
-    //       });
-    //       clearInterval(portInterval);
-    //     } catch (err) {
-    //       console.log('Port is not open yet');
-    //     }
-    //   }
-    // const checkPort = () => {
-    //   try {
-    //     writeSocket = net.createConnection(newPort, '127.0.0.1', () => {
-    //       console.log(`${newPort} is connected!`);
-    //     });
-    //     writeSocket.on('close', () => {
-    //       ffmpegServer.close();
-    //       console.log(`Livestreaming on port ${newPort} complete!`);
-    //     });
-    //     writeSocket.on('error', (err) => {
-    //       console.log('WriteSocket ERROR!', err);
-    //     });
-    //     clearInterval(portInterval);
-    //   } catch (err) {
-    //     console.log('Port is not open yet');
-    //   }
-    // };
-    // const portInterval = setInterval(checkPort, 500);
-    // };
-
     checkIfPortIsOpen();
 
     let cachedData = undefined;
