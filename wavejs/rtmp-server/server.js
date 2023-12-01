@@ -53,28 +53,49 @@ const Server = () => {
     });
     ffmpegServer.listen();
 
-    let writeSocket = undefined;
+    let writeSocket = new net.Socket();
+    let retry = true;
 
-    function checkIfPortIsOpen() {
-      const portInterval = setInterval(checkPort, 500);
-      function checkPort() {
+    writeSocket.on('error', () => {
+      retry = true;
+      console.log('Socket error!');
+    });
+
+    const checkIfPortIsOpen = () => {
+      const checkPort = () => {
         try {
-          writeSocket = net.createConnection(newPort, '127.0.0.1', () => {
-            console.log(`${newPort} is connected!`);
-          });
-          // writeSocket.on('close', () => {
-          //   ffmpegServer.close();
-          //   console.log(`Livestreaming on port ${newPort} complete!`);
-          // });
-          writeSocket.on('error', (err) => {
-            console.log('WriteSocket ERROR!', err);
-          });
-          clearInterval(portInterval);
+          if (retry) {
+            retry = false;
+            writeSocket.connect(newPort, '127.0.0.1', () => {
+              console.log(`${newPort} is connected!`);
+              clearInterval(portInterval);
+            });
+          }
         } catch (err) {
+          retry = true;
           console.log('Port is not open yet');
         }
-      }
-    }
+      };
+      const portInterval = setInterval(checkPort, 500);
+    };
+
+    // function checkIfPortIsOpen() {
+    //   const portInterval = setInterval(checkPort, 500);
+    //   function checkPort() {
+    //     try {
+    //       if (retry) {
+    //         retry = false;
+    //         writeSocket.connect(newPort, '127.0.0.1', () => {
+    //           console.log(`${newPort} is connected!`);
+    //           clearInterval(portInterval);
+    //         });
+    //       }
+    //     } catch (err) {
+    //       retry = true;
+    //       console.log('Port is not open yet');
+    //     }
+    //   }
+    // }
 
     // const checkIfPortIsOpen = () => {
     //   const portInterval = setInterval(checkPort, 500);
