@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('node:http');
 const fs = require('node:fs');
 
-const cors = require('cors')
+const cors = require('cors');
 const Logger = require('./logger');
 
 const contentTypes = {
@@ -12,41 +12,43 @@ const contentTypes = {
   '.mpd': 'application/dash+xml',
 };
 
-
 class ExpressServer {
   constructor(session) {
     this.config = {
       port: 3000,
-      endpoint: 'wavejs'
-    }
+      endpoint: 'wavejs',
+    };
     this.app = express();
     this.session = session;
     this.app.disable('x-powered-by');
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(express.json());
     this.app.use(Logger.expressHttpLogger);
-    this.app.use(cors())
-
+    this.app.use(cors());
   }
   listen(port = this.config.port) {
-    if(port) this.configureOutput({port: port});
+    if (port) this.configureOutput({ port: port });
     this.registerRoutes();
     this.server = http.createServer(this.app);
     this.server.listen(this.config.port, () => {
-      console.log(`🚀 Express blasting off at http://localhost:${this.config.port}/${this.config.endpoint}`);
+      console.log(
+        `🚀 Express blasting off at http://localhost:${this.config.port}/${this.config.endpoint}`
+      );
     });
   }
   close() {
     this.server.close();
   }
-  configureOutput({ port, endpoint}) {
-    if (typeof port === 'number' && String(port).length === 4) this.config.port = port;
-    if (typeof endpoint === 'string' && endpoint.length > 2) this.config.endpoint = endpoint;
+  configureOutput({ port, endpoint }) {
+    if (typeof port === 'number' && String(port).length === 4)
+      this.config.port = port;
+    if (typeof endpoint === 'string' && endpoint.length > 2)
+      this.config.endpoint = endpoint;
   }
   registerRoutes() {
     this.dynamicRoute();
     this.app.all('*', (req, res, next) => {
-      Logger.error(`404: ${req.baseUrl}`)
+      Logger.error(`404: ${req.baseUrl}`);
       res.status(404).send("😵 Can't find what you're looking for!");
     });
     this.app.use((err, req, res, next) => {
@@ -55,39 +57,49 @@ class ExpressServer {
     });
   }
 
-  dynamicRoute(){
-    this.app.get(`/${this.config.endpoint}/:streamId/:extension`, (req, res) => {
-      //this is the area where we need to connect fmpg to the server
-      Logger.debug(`endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.extension}`)
-      const ext = req.params.extension.split('.')[1]
-      let videoPath, streamPath;
-      let contentType;
-      // Logger.debug('stream: ', this.session.outputStreams)
-      if (ext === 'm3u8' || ext === 'ts') {
-        streamPath = this.session.getOutputStreamPath(req.params.streamId, 'hls');
-        contentType = contentTypes['.m3u8'];
-        videoPath = `${streamPath}/${req.params.extension}`
-      } else if (ext === 'mpd' || ext === 'm4s') {
-        streamPath = this.session.getOutputStreamPath(req.params.streamId, 'dash');
-        contentType = contentTypes['.mpd'];
-        videoPath = `${streamPath}/${req.params.extension}`
-      } else {
-        Logger.error(`Requested extension not supported: ${ext}`);
-        res.status(400).send("Bad Request")
-      }
+  dynamicRoute() {
+    this.app.get(
+      `/${this.config.endpoint}/:streamId/:extension`,
+      (req, res) => {
+        //this is the area where we need to connect fmpg to the server
+        Logger.debug(
+          `endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.extension}`
+        );
+        const ext = req.params.extension.split('.')[1];
+        let videoPath, streamPath;
+        let contentType;
+        // Logger.debug('stream: ', this.session.outputStreams)
+        if (ext === 'm3u8' || ext === 'ts') {
+          streamPath = this.session.getOutputStreamPath(
+            req.params.streamId,
+            'hls'
+          );
+          contentType = contentTypes['.m3u8'];
+          videoPath = `${streamPath}/${req.params.extension}`;
+        } else if (ext === 'mpd' || ext === 'm4s') {
+          streamPath = this.session.getOutputStreamPath(
+            req.params.streamId,
+            'dash'
+          );
+          contentType = contentTypes['.mpd'];
+          videoPath = `${streamPath}/${req.params.extension}`;
+        } else {
+          Logger.error(`Requested extension not supported: ${ext}`);
+          res.status(400).send('Bad Request');
+        }
 
-      // const videoPath = `${stream.address}/${req.params.m3u8}`;
-      
-      Logger.debug(`videoPath: ${videoPath}`)
-      if (fs.existsSync(videoPath)) {
-        res.status(200).set('Content-Type', contentType);
-        fs.createReadStream(videoPath).pipe(res);
-      } else {
-        Logger.error('Stream isn\'t ready')
-        res.status(400).send('Stream isn\'t ready')
+        // const videoPath = `${stream.address}/${req.params.m3u8}`;
+
+        Logger.debug(`videoPath: ${videoPath}`);
+        if (fs.existsSync(videoPath)) {
+          res.status(200).set('Content-Type', contentType);
+          fs.createReadStream(videoPath).pipe(res);
+        } else {
+          Logger.error("Stream isn't ready");
+          res.status(400).send("Stream isn't ready");
+        }
       }
-      
-    });
+    );
   }
 
   debug() {
@@ -96,7 +108,6 @@ class ExpressServer {
     });
   }
 }
-
 
 // const expressServer = {}
 
