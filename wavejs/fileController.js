@@ -1,43 +1,80 @@
 const path = require('node:path');
-const fs = require('node:fs');
-const crypto = require('crypto');
+const fs = require('node:fs/promises')
+const crypto = require('node:crypto');
 const { error, info } = require('./logger');
 
-const generateStreamId = () => {
-  const streamId = crypto.randomUUID();
-  info(`Your stream id is ${streamId}.`);
-}
 
-const buildHLSDirPath = (streamId) =>
-  path.join(__dirname, '../videoFiles', streamId);
 
-const buildHLSPlaylistPath = (streamId) =>
-  path.join(buildHLSDirPath(streamId), 'manifest.m3u8');
+class FileController {
+  constructor(streamId, mediaRoot = '../videoFiles') {
+    this._mediaRoot = mediaRoot;
+    this._streamId;
+    this.setStreamId(streamId);
+  }
+    /* STREAM IDs */
+  setStreamId(newId) {
+    if (typeof newId !=='string') throw new Error(`FileController: only strings can be leveraged, not type '${typeof newId}'`)
+    this._streamId = newId
+  }
+  getStreamId() {
+    return this._streamId;
+  }
+  generateStreamId() {
+    const streamId = crypto.randomUUID();
+    info(`Your stream id is ${streamId}.`);
+    return streamId;
+  }
+  /* HLS Methods */
+  buildHLSDirPath() {
+    return path.join(__dirname, this._mediaRoot, this._streamId, 'hls');
+  }
+  buildHLSPlaylistPath() {
+    return path.join(this.buildHLSDirPath(), 'manifest.m3u8');
+  }
+  async buildHLSDir() {
+    const path = this.buildHLSDirPath();
+    try {
+      await fs.mkdir(path, { recursive: true });
+    } catch(err) {
+      error(err);
+    }
+    
+  }
+  async deleteHLSDir() {
+    const path = this.buildHLSDirPath();
+    info(path)
+    try {
+      await fs.rm(path, {recursive: true, force: true});
+    } catch(err) {
+      error(err)
+    }
+    info('deleteHLSDirCallled')
+  }
 
-const buildHLSDir = (streamId) => {
-  const path = buildHLSDirPath(streamId);
-  fs.mkdir(path, { recursive: true }, (err) => {
-    if (err) throw err;
-  });
+  /* MPD Methods */
+  buildMPDDirPath() {
+    return path.join(__dirname, this._mediaRoot, this._streamId, 'mpd');
+  }
+  buildMPDPlaylistPath() {
+    return path.join(this.buildMPDDirPath(), 'manifest.mpd');
+  }
+  async buildMPDDir() {
+    const path = this.buildMPDDirPath();
+    try {
+      await fs.mkdir(path, { recursive: true });
+    } catch(err) {
+      error(err);
+    }
+  }
+  async deleteMPDDir() {
+    const path = this.buildMPDDirPath();
+    try {
+      await fs.rm(path, {recursive: true, force: true});
+    } catch(err) {
+      error(err)
+    }
+  }
 };
 
-const buildHLSSegmentPath = (streamId, segment) => path.join(buildHLSDirPath(streamId), `manifest${segment}.ts`)
 
-//console.log(buildHLSPlaylistPath('test'));
-
-const deleteHLSDir = (streamId) => {
-  const path = buildHLSDirPath(streamId);
-  fs.rmdir(path, {recursive: true}, (err) => {
-    if (err) error('An error occurred while deleting the HLS directory.');
-    else info('HLS directory successfully deleted.');
-  })
-}
-
-module.exports = {
-  generateStreamId,
-  buildHLSPlaylistPath,
-  buildHLSDirPath,
-  buildHLSDir,
-  buildHLSSegmentPath,
-  deleteHLSDir
-};
+module.exports = FileController;
