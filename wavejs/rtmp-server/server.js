@@ -1,6 +1,7 @@
 const net = require('net');
 const _ = require('lodash');
 const FFmpegServer = require('../FFmpegServer');
+const session = require('../session');
 
 const Logger = require('../logger');
 
@@ -45,7 +46,7 @@ const Server = () => {
 
     const newPort = portGenerator();
 
-    const ffmpegServer = new FFmpegServer(newPort);
+    const ffmpegServer = new FFmpegServer(session, newPort);
     ffmpegServer.configureAV({ hlsListSize: ['-hls_list_size', '0'] });
     ffmpegServer.configureStream({
       endpoint: 'wavejs',
@@ -56,9 +57,9 @@ const Server = () => {
     let writeSocket = new net.Socket();
     let retry = true;
 
-    writeSocket.on('error', () => {
+    writeSocket.on('error', (err) => {
       retry = true;
-      console.log('Socket error!');
+      console.log('Socket error!', err);
     });
 
     const checkIfPortIsOpen = () => {

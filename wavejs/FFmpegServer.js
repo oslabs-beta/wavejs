@@ -42,8 +42,7 @@ class FFmpegServer {
   }
   listen() {
     console.log(
-      `🎥 FFmpeg Server starting at rtmp://localhost:${this.port}`
-
+      `🎥 FFmpeg Server starting at rtmp://127.0.0.1:${this.port}`
       //`🎥 FFmpeg Server starting at rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
     );
     this.session.initOutputStream(this.streamConfig.streamId);
@@ -168,7 +167,7 @@ class FFmpegServer {
   buildHLSStream(outputPath) {
     const fullOutput = `${outputPath}/manifest.m3u8`;
     const stream = ffmpeg()
-      .input(`rtmp://localhost/`, { timeout: 42300 })
+      .input(`rtmp://127.0.0.1:${this.port}`, { timeout: 42300 })
 
       .inputOption(
         '-rtmp_app',
