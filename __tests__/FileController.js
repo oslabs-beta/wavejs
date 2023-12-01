@@ -1,5 +1,5 @@
 const FileController = require('../wavejs/FileController');
-const fs = require('node:fs')
+const fs = require('node:fs/promises')
 const crypto = require('node:crypto')
 const path = require('node:path');
 
@@ -7,10 +7,10 @@ jest.mock('node:crypto', () => {
   return { randomUUID: jest.fn()}
 })
 
-jest.mock('node:fs', () => {
+jest.mock('node:fs/promises', () => {
   return {
-    mkdir: jest.fn(),
-    rmdir: jest.fn(),
+    mkdir: jest.fn(() => Promise.resolve()),
+    rm: jest.fn(() => Promise.resolve()),
   }
 })
 // beforeEach(() =>{
@@ -89,7 +89,7 @@ describe('@File Controller tests', ()=>{
 
   describe('# HLS methods', () => {
     let spy;
-    let outputPath = '/Users/evan/Development/Codesmith/OSP/_main/wavejs/videoFiles/hls/test';
+    let outputPath = '/Users/evan/Development/Codesmith/OSP/_main/wavejs/videoFiles/test/hls';
     beforeEach(() =>{
       fc = new FileController('test')
       spy = jest.spyOn(path, 'join');
@@ -107,7 +107,7 @@ describe('@File Controller tests', ()=>{
     test('buildHLSDirPath path includes current mediaRoot, hls, and streamId', ()=>{
       fc.buildHLSDirPath();
       const wave_dirname = path.resolve('wavejs')
-      expect(spy).toHaveBeenCalledWith(wave_dirname, fc._mediaRoot, 'hls', fc._streamId)
+      expect(spy).toHaveBeenCalledWith(wave_dirname, fc._mediaRoot, fc._streamId, 'hls')
     });
 
     test('buildHLSPlaylistPath returns a path', ()=>{
@@ -121,34 +121,34 @@ describe('@File Controller tests', ()=>{
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    test('buildHLSDir calls buildHLSDirPath', () => {
+    test('buildHLSDir calls buildHLSDirPath', async () => {
       spy = jest.spyOn(fc, 'buildHLSDirPath');
-      fc.buildHLSDir();
+      await fc.buildHLSDir();
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    test('buildHLSDir calls fs.mkdir on path', () => {
-      fc.buildHLSDir()
+    test('buildHLSDir calls fs.mkdir on path', async() => {
+      await fc.buildHLSDir()
       expect(fs.mkdir).toHaveBeenCalledTimes(1);
       expect(fs.mkdir.mock.calls[0][0]).toBe(outputPath);
     });
     
-    test('deleteHLSDir calls buildHLSDirPath', () => {
+    test('deleteHLSDir calls buildHLSDirPath', async () => {
       spy = jest.spyOn(fc, 'buildHLSDirPath');
-      fc.deleteHLSDir();
+      await fc.deleteHLSDir();
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    test('deleteHLSDir calls fs.rmdir on path', () => {
-      fc.deleteHLSDir()
-      expect(fs.rmdir).toHaveBeenCalledTimes(1);
-      expect(fs.rmdir.mock.calls[0][0]).toBe(outputPath);
+    test('deleteHLSDir calls fs.rmdir on path', async () => {
+      await fc.deleteHLSDir()
+      expect(fs.rm).toHaveBeenCalledTimes(1);
+      expect(fs.rm.mock.calls[0][0]).toBe(outputPath);
     });
 
   });
   describe('# MPD methods', () => {
     let spy;
-    let outputPath = '/Users/evan/Development/Codesmith/OSP/_main/wavejs/videoFiles/mpd/test';
+    let outputPath = '/Users/evan/Development/Codesmith/OSP/_main/wavejs/videoFiles/test/mpd';
     beforeEach(() =>{
       fc = new FileController('test')
       spy = jest.spyOn(path, 'join');
@@ -166,7 +166,7 @@ describe('@File Controller tests', ()=>{
     test('buildMPDDirPath path includes current mediaRoot, hls, and streamId', ()=>{
       fc.buildMPDDirPath();
       const wave_dirname = path.resolve('wavejs')
-      expect(spy).toHaveBeenCalledWith(wave_dirname, fc._mediaRoot, 'mpd', fc._streamId)
+      expect(spy).toHaveBeenCalledWith(wave_dirname, fc._mediaRoot, fc._streamId, 'mpd' )
     });
 
     test('buildMPDPlaylistPath returns a path', ()=>{
@@ -180,28 +180,28 @@ describe('@File Controller tests', ()=>{
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    test('buildMPDDir calls buildMPDDirPath', () => {
+    test('buildMPDDir calls buildMPDDirPath', async () => {
       spy = jest.spyOn(fc, 'buildMPDDirPath');
-      fc.buildMPDDir();
+      await fc.buildMPDDir();
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    test('buildMPDDir calls fs.mkdir on path', () => {
-      fc.buildMPDDir()
+    test('buildMPDDir calls fs.mkdir on path', async () => {
+      await fc.buildMPDDir()
       expect(fs.mkdir).toHaveBeenCalledTimes(1);
       expect(fs.mkdir.mock.calls[0][0]).toBe(outputPath);
     });
     
-    test('deleteMPDDir calls buildMPDDirPath', () => {
+    test('deleteMPDDir calls buildMPDDirPath', async () => {
       spy = jest.spyOn(fc, 'buildMPDDirPath');
-      fc.deleteMPDDir();
+      await fc.deleteMPDDir();
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    test('deleteMPDDir calls fs.rmdir on path', () => {
-      fc.deleteMPDDir()
-      expect(fs.rmdir).toHaveBeenCalledTimes(1);
-      expect(fs.rmdir.mock.calls[0][0]).toBe(outputPath);
+    test('deleteMPDDir calls fs.rmdir on path', async () => {
+      await fc.deleteMPDDir()
+      expect(fs.rm).toHaveBeenCalledTimes(1);
+      expect(fs.rm.mock.calls[0][0]).toBe(outputPath);
     });
 
   });

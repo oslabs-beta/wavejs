@@ -1,5 +1,5 @@
 const path = require('node:path');
-const fs = require('node:fs').promises;
+const fs = require('node:fs/promises')
 const crypto = require('node:crypto');
 const { error, info } = require('./logger');
 

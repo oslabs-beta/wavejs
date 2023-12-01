@@ -9,6 +9,7 @@ const streamStorage = require('./session');
 const streamConfig = {
   endpoint: 'live',
   streamId: 'test',
+
 };
 
 const videoAudioConfig = {
@@ -117,14 +118,14 @@ class FFmpegServer {
       // event handler for end of stream
       .on('end', async () => {
         console.log('Success! Your live stream has been saved.');
-        this.session.setOutputStreamActive(this.streamConfig.streamId, 'mpd', false);
-        await this.session.deleteOutputStream(this.streamConfig.streamId, 'mpd')
+        this.session.setOutputStreamActive(this.streamConfig.streamId, 'dash', false);
+        await this.session.deleteOutputStream(this.streamConfig.streamId, 'dash')
         process.exit(0);
       })
       // error handling
       .on('error', (err) => {
         console.log('An error occurred: ' + err.message);
-        this.session.setOutputStreamActive(this.streamConfig.streamId, 'mpd', false);
+        this.session.setOutputStreamActive(this.streamConfig.streamId, 'dash', false);
         process.exit(0);
       })
       .on('stderr', function (stderrLine) {
@@ -133,7 +134,7 @@ class FFmpegServer {
       .on('connection', () => {
         console.log('Someone Connected!');
 
-        this.session.setOutputStreamActive(this.streamConfig.streamId, 'mpd', true);
+        this.session.setOutputStreamActive(this.streamConfig.streamId, 'dash', true);
       });
     return stream;
   }
