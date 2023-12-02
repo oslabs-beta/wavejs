@@ -62,7 +62,7 @@ const Server = () => {
     });
     ffmpegServer.listen();
 
-    let writeSocket = new net.Socket();
+    const writeSocket = new net.Socket();
     let retry = true;
 
     writeSocket.on('error', (err) => {
