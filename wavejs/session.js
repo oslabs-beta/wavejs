@@ -1,23 +1,15 @@
 
 const FileController = require('./FileController');
 const { PassThrough } = require('node:stream');
+const { EventEmitter } = require('node:events');
 
 const streamStorage = {
   outputStreams: new Map(),
   supportedOutputFormats: ['dash', 'hls'],
-  publisherStreams: new Map(), //3908f0_LIVE, <PassThrough ff ff ff>
   publishers: new Map(), // /LIVE/MY_COOL_STREAM, 3908f0_LIVE
+  events: new EventEmitter(),
 
-  /* Publisher Stream Methods */
-  initializePublisherStream(streamId) {
-    this.publisherStreams.set(streamId, {
-      res: new PassThrough(),
-      numPlayCache: 0,
-    });
-  },
-  retrievePublisherStream(streamId) {
-    return this.publisherStreams.get(streamId);
-  },
+
   /* output Stream Methods */
   initOutputStream(streamId) {
     this.outputStreams.set(streamId, {

@@ -2,14 +2,14 @@ const net = require('net');
 const _ = require('lodash');
 const FFmpegServer = require('../FFmpegServer');
 const session = require('../session');
-
+const utils = require('../utils')
 const Logger = require('../logger');
 
 const MINIMUM_PORT = 1024;
 const MAXIMUM_PORT = 49151;
 
 const {
-  onSocketData: baseOnSocketData,
+  handleRTMPHandshake: baseHandleRTMPHandshake,
   stop: baseStop,
 } = require('./rtmp_handlers');
 const { partialMod } = require('./utils');
@@ -31,10 +31,29 @@ const Server = () => {
     state.setSocket(socket);
     state.setId();
     //bind onSocket handler to config and state
-    const onSocketData = partialMod(baseOnSocketData, [config, state]);
-    const stop = partialMod(baseStop, [config, state]);
-    //streamStorage.sessions.set()
-    //implement something to allow for customizing the
+    const handleRTMPHandshake = partialMod(baseHandleRTMPHandshake, [config, state, streamStorage]);
+    const stop = partialMod(baseStop, [config, state, streamStorage]);
+    //implement event listener
+    /* avail events:
+
+    audio
+    video
+    metadata
+    connect
+    publish
+    close
+    error
+    disconnect
+    */
+   const logArgs = (event, arg) => Logger.debug(`[emitter] ${event}: ${JSON.stringify(arg)}`)
+    streamStorage.events.on('audio', (arg) => logArgs('audio', arg))
+    streamStorage.events.on('video', (arg) => logArgs('video', arg))
+    streamStorage.events.on('metadata', (arg) => logArgs('metadata', arg))
+    streamStorage.events.on('connect', (arg) => logArgs('connect', arg))
+    streamStorage.events.on('publish', (arg) => logArgs('publish', arg))
+    streamStorage.events.on('close', (arg) => logArgs('close', arg))
+    streamStorage.events.on('disconnect', (arg) => logArgs('disconnect', arg))
+    streamStorage.events.on('error', (arg) => Logger.error(`[emitter] error: ${utils.objRepr(arg)}`))
 
     // Generate a random port (localhost ports 1024 to 49151 are available for use)
     const portGenerator = () => {
@@ -59,8 +78,21 @@ const Server = () => {
 
     writeSocket.on('error', (err) => {
       retry = true;
-      console.log('Socket error!', err);
+      Logger.error(`[write socket] socket error: ${err}`)
     });
+
+    writeSocket.on('connect', () => {
+      Logger.debug(`[write socket] successful connection`)
+    });
+
+    writeSocket.on('data', (data) => {
+      Logger.debug(`[write socket] data received`)
+    });
+    writeSocket.on('ready', () => {
+      Logger.debug(`[write socket] socket ready`)
+    });
+
+
 
     const checkIfPortIsOpen = () => {
       const checkPort = () => {
@@ -68,13 +100,13 @@ const Server = () => {
           if (retry) {
             retry = false;
             writeSocket.connect(newPort, '127.0.0.1', () => {
-              console.log(`${newPort} is connected!`);
+              Logger.debug(`[write socket] ${newPort} is connected!`);
               clearInterval(portInterval);
             });
           }
         } catch (err) {
           retry = true;
-          console.log('Port is not open yet');
+          Logger.error('[write socket] Port is not open yet');
         }
       };
       const portInterval = setInterval(checkPort, 500);
@@ -86,7 +118,7 @@ const Server = () => {
 
     //session, run
     state.socket.on('data', (data) => {
-      onSocketData(data);
+      handleRTMPHandshake(data);
       if (
         writeSocket &&
         !writeSocket.pending &&
@@ -113,8 +145,11 @@ const Server = () => {
       stop();
     });
     state.socket.on('error', (err) => {
-      Logger.error(`Outer socket error: ${err}`);
-      stop();
+      if (err.code !== 'ECONNRESET') {
+        Logger.error(`Outer socket error: ${err}`);
+        stop();
+      }
+
     });
     state.socket.on('timeout', () => {
       Logger.error(`Outer socket timeout`);
