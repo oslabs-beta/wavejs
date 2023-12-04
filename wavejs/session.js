@@ -1,4 +1,3 @@
-
 const FileController = require('./FileController');
 const { PassThrough } = require('node:stream');
 const { EventEmitter } = require('node:events');
@@ -7,7 +6,18 @@ const streamStorage = {
   outputStreams: new Map(),
   supportedOutputFormats: ['dash', 'hls'],
   publishers: new Map(), // /LIVE/MY_COOL_STREAM, 3908f0_LIVE
-  events: new EventEmitter(),
+  ffmpegPorts: new Map(),
+  /* FfmpegPort Methods */
+  registerFfmpegPort(portNumber) {
+    this.ffmpegPorts.set(String(portNumber), 'active port');
+  },
+  checkForActiveFfmpegPorts(portNumber) {
+    console.log(
+      'Is there an active port?',
+      this.ffmpegPorts.has(String(portNumber))
+    );
+    return this.ffmpegPorts.has(String(portNumber));
+  },  events: new EventEmitter(),
 
 
   /* output Stream Methods */
@@ -17,21 +27,29 @@ const streamStorage = {
       streams: {
         hls: {
           filePath: null,
-          active: false, 
+          active: false,
         },
         dash: {
           filePath: null,
           active: false,
-        }
-      }
-    })
+        },
+      },
+    });
   },
   addOutputStream(streamId, protocol, active = true) {
     // Main error checking on protocol, active
-    if (!this.supportedOutputFormats.includes(protocol)) throw new Error(`Stream Storage: protocol of '${protocol}' not included in accepted formats: ${this.supportedOutputFormats.join(', ')}}`);
-    if (typeof active !== 'boolean') throw new Error(`Stream Storage: active needs to be boolean, not type ${typeof active}`)
+    if (!this.supportedOutputFormats.includes(protocol))
+      throw new Error(
+        `Stream Storage: protocol of '${protocol}' not included in accepted formats: ${this.supportedOutputFormats.join(
+          ', '
+        )}}`
+      );
+    if (typeof active !== 'boolean')
+      throw new Error(
+        `Stream Storage: active needs to be boolean, not type ${typeof active}`
+      );
     //main switch statement
-    switch(protocol) {
+    switch (protocol) {
       case 'dash': {
         const state = this.outputStreams.get(streamId);
         state.streams.dash.filePath = state._fileController.buildMPDDirPath();
@@ -53,11 +71,17 @@ const streamStorage = {
     }
   },
   getOutputStreamPath(streamId, protocol) {
-    if (!this.supportedOutputFormats.includes(protocol)) throw new Error(`Stream Storage: protocol of '${protocol}' not included in accepted formats: ${this.supportedOutputFormats.join(', ')}}`);
+    if (!this.supportedOutputFormats.includes(protocol))
+      throw new Error(
+        `Stream Storage: protocol of '${protocol}' not included in accepted formats: ${this.supportedOutputFormats.join(
+          ', '
+        )}}`
+      );
     const state = this.outputStreams.get(streamId);
-    if (state === undefined) throw new Error('StreamID hasnt\'t been created yet');
-    switch(protocol) {
-      case "dash": {
+    if (state === undefined)
+      throw new Error("StreamID hasnt't been created yet");
+    switch (protocol) {
+      case 'dash': {
         return state.streams.dash.filePath;
       }
       case 'hls': {
@@ -68,10 +92,15 @@ const streamStorage = {
     }
   },
   setOutputStreamActive(streamId, protocol, active = true) {
-    if (!this.supportedOutputFormats.includes(protocol)) throw new Error(`Stream Storage: protocol of '${protocol}' not included in accepted formats: ${this.supportedOutputFormats.join(', ')}}`);
+    if (!this.supportedOutputFormats.includes(protocol))
+      throw new Error(
+        `Stream Storage: protocol of '${protocol}' not included in accepted formats: ${this.supportedOutputFormats.join(
+          ', '
+        )}}`
+      );
     const state = this.outputStreams.get(streamId);
     switch (protocol) {
-      case "dash": {
+      case 'dash': {
         if (state.streams.dash.active === active) return;
         else {
           state.streams.dash.active = active;
@@ -92,21 +121,26 @@ const streamStorage = {
     }
   },
   async deleteOutputStream(streamId, protocol) {
-    if (!this.supportedOutputFormats.includes(protocol)) throw new Error(`Stream Storage: protocol of '${protocol}' not included in accepted formats: ${this.supportedOutputFormats.join(', ')}}`);
+    if (!this.supportedOutputFormats.includes(protocol))
+      throw new Error(
+        `Stream Storage: protocol of '${protocol}' not included in accepted formats: ${this.supportedOutputFormats.join(
+          ', '
+        )}}`
+      );
     const state = this.outputStreams.get(streamId);
     switch (protocol) {
-      case "dash": {
+      case 'dash': {
         await state._fileController.deleteMPDDir();
-       return;
+        return;
       }
       case 'hls': {
-       await state._fileController.deleteHLSDir();
-       return;
+        await state._fileController.deleteHLSDir();
+        return;
       }
       default:
         throw new Error(`StreamStorage: protocol of ${protocol} not accepted.`);
     }
-  }
+  },
 };
 
 module.exports = streamStorage;
