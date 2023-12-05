@@ -105,12 +105,14 @@ const Server = () => {
     let ffmpegServer = undefined;
 
     streamStorage.events.on('publish', (args) => {
-      console.log('PATH!!!', args.stream_path);
+      // stream_path is /wavejs/streamkey => slice to isolate the stream key
+      let streamKey = args.stream_path.slice(8);
       ffmpegServer = new FFmpegServer(session, newPort);
       ffmpegServer.configureAV({ hlsListSize: ['-hls_list_size', '0'] });
       ffmpegServer.configureStream({
         endpoint: 'wavejs',
         streamId: String(state.id),
+        userId: streamKey,
       });
       ffmpegServer.listen();
 

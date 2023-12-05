@@ -8,6 +8,7 @@ const streamStorage = require('./session');
 const streamConfig = {
   endpoint: 'live',
   streamId: 'test',
+  userId: 'testUser',
 };
 
 const videoAudioConfig = {
@@ -45,7 +46,10 @@ class FFmpegServer {
       `🎥 FFmpeg Server starting at rtmp://127.0.0.1:${this.port}`
       //`🎥 FFmpeg Server starting at rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
     );
-    this.session.initOutputStream(this.streamConfig.streamId);
+    this.session.initOutputStream(
+      this.streamConfig.streamId,
+      this.streamConfig.userId
+    );
     if (this.AVConfig.protocols.includes('hls')) {
       this.session.addOutputStream(this.streamConfig.streamId, 'hls');
       let HLSOutput = this.session.getOutputStreamPath(
