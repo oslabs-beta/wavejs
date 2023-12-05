@@ -104,7 +104,7 @@ const Server = () => {
     let retry = true;
     let ffmpegServer = undefined;
 
-    streamStorage.events.on('publish', (args) => {
+    streamStorage.events.once('publish', (args) => {
       // stream_path is /wavejs/streamkey => slice to isolate the stream key
       let streamKey = args.stream_path.slice(8);
       ffmpegServer = new FFmpegServer(session, newPort);
