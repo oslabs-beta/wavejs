@@ -12,13 +12,9 @@ const streamStorage = {
     this.ffmpegPorts.set(String(portNumber), 'active port');
   },
   checkForActiveFfmpegPorts(portNumber) {
-    console.log(
-      'Is there an active port?',
-      this.ffmpegPorts.has(String(portNumber))
-    );
     return this.ffmpegPorts.has(String(portNumber));
-  },  events: new EventEmitter(),
-
+  },
+  events: new EventEmitter(),
 
   /* output Stream Methods */
   initOutputStream(streamId) {
