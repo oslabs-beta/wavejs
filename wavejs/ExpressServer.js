@@ -59,26 +59,33 @@ class ExpressServer {
 
   dynamicRoute() {
     this.app.get(
-      `/${this.config.endpoint}/:streamId/:extension`,
+      `/${this.config.endpoint}/:streamKey/:extension`,
+      //`/${this.config.endpoint}/:streamId/:extension`,
       (req, res) => {
         //this is the area where we need to connect fmpg to the server
         Logger.debug(
-          `endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.extension}`
+          `endpoint: ${this.config.endpoint}/${req.params.streamKey}/${req.params.extension}`
+          //`endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.extension}`
         );
         const ext = req.params.extension.split('.')[1];
         let videoPath, streamPath;
         let contentType;
+        const streamId = this.session.activeLiveStreams.get(
+          req.params.streamKey
+        );
         // Logger.debug('stream: ', this.session.outputStreams)
         if (ext === 'm3u8' || ext === 'ts') {
           streamPath = this.session.getOutputStreamPath(
-            req.params.streamId,
+            streamId,
+            //req.params.streamId,
             'hls'
           );
           contentType = contentTypes['.m3u8'];
           videoPath = `${streamPath}/${req.params.extension}`;
         } else if (ext === 'mpd' || ext === 'm4s') {
           streamPath = this.session.getOutputStreamPath(
-            req.params.streamId,
+            streamId,
+            //req.params.streamId,
             'dash'
           );
           contentType = contentTypes['.mpd'];

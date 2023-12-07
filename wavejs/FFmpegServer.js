@@ -8,6 +8,7 @@ const streamStorage = require('./session');
 const streamConfig = {
   endpoint: 'live',
   streamId: 'test',
+  userId: 'testUser',
 };
 
 const videoAudioConfig = {
@@ -45,7 +46,10 @@ class FFmpegServer {
       `🎥 FFmpeg Server starting at rtmp://127.0.0.1:${this.port}`
       //`🎥 FFmpeg Server starting at rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
     );
-    this.session.initOutputStream(this.streamConfig.streamId);
+    this.session.initOutputStream(
+      this.streamConfig.streamId,
+      this.streamConfig.userId
+    );
     if (this.AVConfig.protocols.includes('hls')) {
       this.session.addOutputStream(this.streamConfig.streamId, 'hls');
       let HLSOutput = this.session.getOutputStreamPath(
@@ -134,11 +138,12 @@ class FFmpegServer {
           'dash',
           false
         );
-        await this.session.deleteOutputStream(
-          this.streamConfig.streamId,
-          'dash'
-        );
-        process.exit(0);
+        /*COMMENT LINES 141 to 145 in to delete files after stream has ended */
+        // await this.session.deleteOutputStream(
+        //   this.streamConfig.streamId,
+        //   'dash'
+        // );
+        //process.exit(0);
       })
       // error handling
       .on('error', (err) => {
@@ -216,11 +221,12 @@ class FFmpegServer {
           'hls',
           false
         );
-        await this.session.deleteOutputStream(
-          this.streamConfig.streamId,
-          'hls'
-        );
-        process.exit(0);
+        /*COMMENT LINES 225 to 228 in to delete files after stream has ended */
+        // await this.session.deleteOutputStream(
+        //   this.streamConfig.streamId,
+        //   'hls'
+        // );
+        //process.exit(0);
       })
       // error handling
       .on('error', (err) => {
