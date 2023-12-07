@@ -1,5 +1,5 @@
-const chalk = require('chalk')
-const { objRepr } = require('./utils')
+const chalk = require('chalk');
+const { objRepr } = require('./utils');
 
 const LOG_LEVELS = {
   silent: 0,
@@ -9,7 +9,7 @@ const LOG_LEVELS = {
   http: 4,
   rtmp: 4,
   debug: 5,
-}
+};
 
 const styles = {
   timestring: chalk.bgBlue.whiteBright,
@@ -20,16 +20,16 @@ const styles = {
   http: chalk.bgMagentaBright,
   rtmp: chalk.bgCyanBright,
   debug: chalk.bgCyanBright,
-}
+};
 
 let currentLogLevel = LOG_LEVELS.debug;
 
-const ignoreHeaders = ['user-agent','postman-token', 'host', 'connection' ]
+const ignoreHeaders = ['user-agent', 'postman-token', 'host', 'connection'];
 
 const timeString = () => {
-  const ts  = new Date();
+  const ts = new Date();
   return ts.toLocaleDateString() + ' ' + ts.toLocaleTimeString();
-}
+};
 
 const setLogLevel = (level) => {
   if (typeof level !== 'number') return;
@@ -43,7 +43,7 @@ const error = (...args) => {
     styles.process(process.pid),
     styles.error(' ERROR '),
     ...args
-    );
+  );
 };
 
 const warn = (...args) => {
@@ -53,7 +53,7 @@ const warn = (...args) => {
     styles.process(process.pid),
     styles.warn(' WARN  '),
     ...args
-    );
+  );
 };
 
 const info = (...args) => {
@@ -63,7 +63,7 @@ const info = (...args) => {
     styles.process(process.pid),
     styles.info(' INFO  '),
     ...args
-    );
+  );
 };
 
 const httpLog = (...args) => {
@@ -73,7 +73,7 @@ const httpLog = (...args) => {
     styles.process(process.pid),
     styles.http(' HTTP  '),
     ...args
-    );
+  );
 };
 
 const rtmpLog = (...args) => {
@@ -83,7 +83,7 @@ const rtmpLog = (...args) => {
     styles.process(process.pid),
     styles.rtmp(' RTMP  '),
     ...args
-    );
+  );
 };
 
 const debug = (...args) => {
@@ -93,28 +93,32 @@ const debug = (...args) => {
     styles.process(process.pid),
     styles.debug(' DEBUG '),
     ...args
-    );
+  );
 };
 
 const expressHttpLogger = (req, res, next) => {
   const filteredHeaders = Object.assign({}, req.headers);
-  ignoreHeaders.forEach(header => {
+  ignoreHeaders.forEach((header) => {
     delete filteredHeaders[header];
   });
   httpLog(
-    // `:${port}`, 
-    chalk.bgWhiteBright.black(req.method), 
+    // `:${port}`,
+    chalk.bgWhiteBright.black(req.method),
     req.originalUrl,
-    objRepr(req.query)? `query: ${objRepr(req.query)}`: '',
+    objRepr(req.query) ? `query: ${objRepr(req.query)}` : '',
     objRepr(filteredHeaders) ? `headers: ${objRepr(filteredHeaders)}` : ''
-    )
-  return next()
+  );
+  return next();
 };
 
 module.exports = {
   LOG_LEVELS,
   setLogLevel,
   expressHttpLogger,
-  error, warn, info, debug, httpLog, rtmpLog
-
-}
+  error,
+  warn,
+  info,
+  debug,
+  httpLog,
+  rtmpLog,
+};

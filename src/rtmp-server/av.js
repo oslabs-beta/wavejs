@@ -5,7 +5,6 @@ readAACSpecificConfig - can be partialed
 getSampleRate - can be partialed
 */
 
-
 const readAACSpecificConfig = (config, state, aacSequenceHeader) => {
   let info = {};
   let bitop = new Bitop(aacSequenceHeader);
@@ -41,7 +40,9 @@ function getObjectType(bitop) {
 
 function getSampleRate(config, state, bitop, info) {
   info.sampling_index = bitop.read(4);
-  return info.sampling_index == 0x0f ? bitop.read(24) : config.audio.sampleRate[info.sampling_index];
+  return info.sampling_index == 0x0f
+    ? bitop.read(24)
+    : config.audio.sampleRate[info.sampling_index];
 }
 
 function getAACProfileName(info) {
@@ -69,8 +70,16 @@ function getAACProfileName(info) {
 
 function readH264SpecificConfig(avcSequenceHeader) {
   let info = {};
-  let profile_idc, width, height, crop_left, crop_right,
-    crop_top, crop_bottom, frame_mbs_only, n, cf_idc,
+  let profile_idc,
+    width,
+    height,
+    crop_left,
+    crop_right,
+    crop_top,
+    crop_bottom,
+    frame_mbs_only,
+    n,
+    cf_idc,
     num_ref_frames;
   let bitop = new Bitop(avcSequenceHeader);
   bitop.read(48);
@@ -82,7 +91,7 @@ function readH264SpecificConfig(avcSequenceHeader) {
     info.compat = bitop.read(8);
     info.level = bitop.read(8);
     info.nalu = (bitop.read(8) & 0x03) + 1;
-    info.nb_sps = bitop.read(8) & 0x1F;
+    info.nb_sps = bitop.read(8) & 0x1f;
     if (info.nb_sps == 0) {
       break;
     }
@@ -105,14 +114,20 @@ function readH264SpecificConfig(avcSequenceHeader) {
     /* SPS id */
     bitop.read_golomb();
 
-    if (profile_idc == 100 || profile_idc == 110 ||
-      profile_idc == 122 || profile_idc == 244 || profile_idc == 44 ||
-      profile_idc == 83 || profile_idc == 86 || profile_idc == 118) {
+    if (
+      profile_idc == 100 ||
+      profile_idc == 110 ||
+      profile_idc == 122 ||
+      profile_idc == 244 ||
+      profile_idc == 44 ||
+      profile_idc == 83 ||
+      profile_idc == 86 ||
+      profile_idc == 118
+    ) {
       /* chroma format idc */
       cf_idc = bitop.read_golomb();
 
       if (cf_idc == 3) {
-
         /* separate color plane */
         bitop.read(1);
       }
@@ -128,12 +143,9 @@ function readH264SpecificConfig(avcSequenceHeader) {
 
       /* seq scaling matrix present */
       if (bitop.read(1)) {
-
         for (n = 0; n < (cf_idc != 3 ? 8 : 12); n++) {
-
           /* seq scaling list present */
           if (bitop.read(1)) {
-
             /* TODO: scaling_list()
             if (n < 6) {
             } else {
@@ -150,13 +162,11 @@ function readH264SpecificConfig(avcSequenceHeader) {
     /* pic order cnt type */
     switch (bitop.read_golomb()) {
       case 0:
-
         /* max pic order cnt */
         bitop.read_golomb();
         break;
 
       case 1:
-
         /* delta pic order alwys zero */
         bitop.read(1);
 
@@ -170,7 +180,6 @@ function readH264SpecificConfig(avcSequenceHeader) {
         num_ref_frames = bitop.read_golomb();
 
         for (n = 0; n < num_ref_frames; n++) {
-
           /* offset for ref frame */
           bitop.read_golomb();
         }
@@ -192,7 +201,6 @@ function readH264SpecificConfig(avcSequenceHeader) {
     frame_mbs_only = bitop.read(1);
 
     if (!frame_mbs_only) {
-
       /* mbs adaprive frame field */
       bitop.read(1);
     }
@@ -202,12 +210,10 @@ function readH264SpecificConfig(avcSequenceHeader) {
 
     /* frame cropping */
     if (bitop.read(1)) {
-
       crop_left = bitop.read_golomb();
       crop_right = bitop.read_golomb();
       crop_top = bitop.read_golomb();
       crop_bottom = bitop.read_golomb();
-
     } else {
       crop_left = 0;
       crop_right = 0;
@@ -216,8 +222,8 @@ function readH264SpecificConfig(avcSequenceHeader) {
     }
     info.level = info.level / 10.0;
     info.width = (width + 1) * 16 - (crop_left + crop_right) * 2;
-    info.height = (2 - frame_mbs_only) * (height + 1) * 16 - (crop_top + crop_bottom) * 2;
-
+    info.height =
+      (2 - frame_mbs_only) * (height + 1) * 16 - (crop_top + crop_bottom) * 2;
   } while (0);
 
   return info;
@@ -277,8 +283,7 @@ function HEVCParsePtl(bitop, hevc, max_sub_layers_minus1) {
     }
     if (general_ptl.sub_layer_level_present_flag[i]) {
       general_ptl.sub_layer_level_idc[i] = bitop.read(8);
-    }
-    else {
+    } else {
       general_ptl.sub_layer_level_idc[i] = 1;
     }
   }
@@ -292,10 +297,10 @@ function HEVCParseSPS(SPS, hevc) {
   let rbsp_array = [];
   let bitop = new Bitop(SPS);
 
-  bitop.read(1);//forbidden_zero_bit
-  bitop.read(6);//nal_unit_type
-  bitop.read(6);//nuh_reserved_zero_6bits
-  bitop.read(3);//nuh_temporal_id_plus1
+  bitop.read(1); //forbidden_zero_bit
+  bitop.read(6); //nal_unit_type
+  bitop.read(6); //nuh_reserved_zero_6bits
+  bitop.read(3); //nuh_temporal_id_plus1
 
   for (let i = 2; i < NumBytesInNALunit; i++) {
     if (i + 2 < NumBytesInNALunit && bitop.look(24) == 0x000003) {
@@ -312,7 +317,11 @@ function HEVCParseSPS(SPS, hevc) {
   psps.sps_video_parameter_set_id = rbspBitop.read(4);
   psps.sps_max_sub_layers_minus1 = rbspBitop.read(3);
   psps.sps_temporal_id_nesting_flag = rbspBitop.read(1);
-  psps.profile_tier_level = HEVCParsePtl(rbspBitop, hevc, psps.sps_max_sub_layers_minus1);
+  psps.profile_tier_level = HEVCParsePtl(
+    rbspBitop,
+    hevc,
+    psps.sps_max_sub_layers_minus1
+  );
   psps.sps_seq_parameter_set_id = rbspBitop.read_golomb();
   psps.chroma_format_idc = rbspBitop.read_golomb();
   if (psps.chroma_format_idc == 3) {
@@ -361,12 +370,24 @@ function readHEVCSpecificConfig(hevcSequenceHeader) {
     }
     hevc.general_profile_space = (hevcSequenceHeader[1] >> 6) & 0x03;
     hevc.general_tier_flag = (hevcSequenceHeader[1] >> 5) & 0x01;
-    hevc.general_profile_idc = hevcSequenceHeader[1] & 0x1F;
-    hevc.general_profile_compatibility_flags = (hevcSequenceHeader[2] << 24) | (hevcSequenceHeader[3] << 16) | (hevcSequenceHeader[4] << 8) | hevcSequenceHeader[5];
-    hevc.general_constraint_indicator_flags = ((hevcSequenceHeader[6] << 24) | (hevcSequenceHeader[7] << 16) | (hevcSequenceHeader[8] << 8) | hevcSequenceHeader[9]);
-    hevc.general_constraint_indicator_flags = (hevc.general_constraint_indicator_flags << 16) | (hevcSequenceHeader[10] << 8) | hevcSequenceHeader[11];
+    hevc.general_profile_idc = hevcSequenceHeader[1] & 0x1f;
+    hevc.general_profile_compatibility_flags =
+      (hevcSequenceHeader[2] << 24) |
+      (hevcSequenceHeader[3] << 16) |
+      (hevcSequenceHeader[4] << 8) |
+      hevcSequenceHeader[5];
+    hevc.general_constraint_indicator_flags =
+      (hevcSequenceHeader[6] << 24) |
+      (hevcSequenceHeader[7] << 16) |
+      (hevcSequenceHeader[8] << 8) |
+      hevcSequenceHeader[9];
+    hevc.general_constraint_indicator_flags =
+      (hevc.general_constraint_indicator_flags << 16) |
+      (hevcSequenceHeader[10] << 8) |
+      hevcSequenceHeader[11];
     hevc.general_level_idc = hevcSequenceHeader[12];
-    hevc.min_spatial_segmentation_idc = ((hevcSequenceHeader[13] & 0x0F) << 8) | hevcSequenceHeader[14];
+    hevc.min_spatial_segmentation_idc =
+      ((hevcSequenceHeader[13] & 0x0f) << 8) | hevcSequenceHeader[14];
     hevc.parallelismType = hevcSequenceHeader[15] & 0x03;
     hevc.chromaFormat = hevcSequenceHeader[16] & 0x03;
     hevc.bitDepthLumaMinus8 = hevcSequenceHeader[17] & 0x07;
@@ -383,7 +404,7 @@ function readHEVCSpecificConfig(hevcSequenceHeader) {
         break;
       }
       let nalutype = p[0];
-      let n = (p[1]) << 8 | p[2];
+      let n = (p[1] << 8) | p[2];
       // Logger.debug(nalutype, n);
       p = p.slice(3);
       for (let j = 0; j < n; j++) {
@@ -404,8 +425,12 @@ function readHEVCSpecificConfig(hevcSequenceHeader) {
           hevc.psps = HEVCParseSPS(sps, hevc);
           info.profile = hevc.general_profile_idc;
           info.level = hevc.general_level_idc / 30.0;
-          info.width = hevc.psps.pic_width_in_luma_samples - (hevc.psps.conf_win_left_offset + hevc.psps.conf_win_right_offset);
-          info.height = hevc.psps.pic_height_in_luma_samples - (hevc.psps.conf_win_top_offset + hevc.psps.conf_win_bottom_offset);
+          info.width =
+            hevc.psps.pic_width_in_luma_samples -
+            (hevc.psps.conf_win_left_offset + hevc.psps.conf_win_right_offset);
+          info.height =
+            hevc.psps.pic_height_in_luma_samples -
+            (hevc.psps.conf_win_top_offset + hevc.psps.conf_win_bottom_offset);
         }
         p = p.slice(k);
       }
@@ -435,7 +460,6 @@ function readAVCSpecificConfig(avcSequenceHeader) {
   }
 }
 
-
 function getAVCProfileName(info) {
   switch (info.profile) {
     case 1:
@@ -459,4 +483,4 @@ module.exports = {
   getAACProfileName,
   readAVCSpecificConfig,
   getAVCProfileName,
-}
+};

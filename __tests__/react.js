@@ -22,8 +22,3 @@ describe('App Component', () => {
     expect(bodyElement).toBeInTheDocument();
   });
 });
-
-
-
-
-     

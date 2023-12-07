@@ -1,5 +1,4 @@
 const QueryString = require('node:querystring');
-const _ = require('lodash');
 
 const AV = require('./av');
 const AMF = require('./node_core_amf');
@@ -7,11 +6,9 @@ const RtmpPacket = require('./RtmpPacket');
 const Handshake = require('./node_rtmp_handshake');
 
 const rtmpActions = require('./rtmp_actions');
-const utils = require('../src/utils');
-const Logger = require('../src/logger');
-const streamStorage = require('../src/session');
-
-let streamId = 'test';
+const utils = require('../utils');
+const Logger = require('../logger');
+const streamStorage = require('../session');
 
 /* CORE EVENT HANDLER */
 

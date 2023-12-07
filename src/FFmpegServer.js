@@ -2,10 +2,8 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const _ = require('lodash');
 
-
 const FileController = require('./FileController');
 const streamStorage = require('./session');
-
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
