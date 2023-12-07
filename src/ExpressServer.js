@@ -4,13 +4,28 @@ const fs = require('node:fs');
 
 const cors = require('cors');
 const Logger = require('./logger');
+const outputMiddleware = require('./output-middleware');
 
 const contentTypes = {
   '.flv': 'video/x-flv',
   '.mp4': 'video/mp4',
-  '.m3u8': 'application/x-mpegURL',
-  '.mpd': 'application/dash+xml',
+  m3u8: 'application/x-mpegURL',
+  ts: 'application/x-mpegURL',
+  mpd: 'application/dash+xml',
+  m4s: 'application/dash+xml',
+
 };
+
+const extProtocol = {
+  m3u8: 'hls',
+  ts: 'hls',
+  mpd: 'dash',
+  m4s: 'dash',
+}
+
+
+
+const loggerIdent = '[stream output]';
 
 class ExpressServer {
   constructor(session) {
@@ -20,18 +35,20 @@ class ExpressServer {
     };
     this.app = express();
     this.session = session;
+    this.defaultErr = defaultError
     this.app.disable('x-powered-by');
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(express.json());
     this.app.use(Logger.expressHttpLogger);
     this.app.use(cors());
+
   }
   listen(port = this.config.port) {
     if (port) this.configureOutput({ port: port });
     this.registerRoutes();
     this.server = http.createServer(this.app);
     this.server.listen(this.config.port, () => {
-      console.log(
+      Logger.info(
         `🚀 Express blasting off at http://localhost:${this.config.port}/${this.config.endpoint}`
       );
     });
@@ -52,8 +69,14 @@ class ExpressServer {
       res.status(404).send("😵 Can't find what you're looking for!");
     });
     this.app.use((err, req, res, next) => {
-      console.error(err.stack);
-      res.status(500).send('☠️ Something Broke!');
+      const defaultError = {
+        code: 500,
+        log: 'Error handler caught unknown middleware error',
+        message: { err: 'An error occured'}
+      }
+      const errorObj = Object.assign({}, defaultError, err);
+      Logger.error(`${loggerIdent} ${errorObj.log}`)
+      res.status(errorObj.code).send(errorObj.message);
     });
   }
 
@@ -62,9 +85,11 @@ class ExpressServer {
       `/${this.config.endpoint}/:streamKey/:extension`,
       //`/${this.config.endpoint}/:streamId/:extension`,
       (req, res) => {
+        Logger.debug(req.path, req.baseUrl, req.originalUrl)
+        Logger.debug(req.route)
         //this is the area where we need to connect fmpg to the server
         Logger.debug(
-          `endpoint: ${this.config.endpoint}/${req.params.streamKey}/${req.params.extension}`
+          `${loggerIdent}endpoint: ${this.config.endpoint}/${req.params.streamKey}/${req.params.extension}`
           //`endpoint: ${this.config.endpoint}/${req.params.streamId}/${req.params.extension}`
         );
         const ext = req.params.extension.split('.')[1];
@@ -74,36 +99,32 @@ class ExpressServer {
           req.params.streamKey
         );
         // Logger.debug('stream: ', this.session.outputStreams)
-        if (ext === 'm3u8' || ext === 'ts') {
-          streamPath = this.session.getOutputStreamPath(
-            streamId,
-            //req.params.streamId,
-            'hls'
-          );
-          contentType = contentTypes['.m3u8'];
-          videoPath = `${streamPath}/${req.params.extension}`;
-        } else if (ext === 'mpd' || ext === 'm4s') {
-          streamPath = this.session.getOutputStreamPath(
-            streamId,
-            //req.params.streamId,
-            'dash'
-          );
-          contentType = contentTypes['.mpd'];
-          videoPath = `${streamPath}/${req.params.extension}`;
-        } else {
-          Logger.error(`Requested extension not supported: ${ext}`);
-          res.status(400).send('Bad Request');
-        }
 
-        // const videoPath = `${stream.address}/${req.params.m3u8}`;
-
-        Logger.debug(`videoPath: ${videoPath}`);
+        if (Object.keys(extProtocol).includes(ext)) {
+          try {
+            streamPath = this.session.getOutputStreamPath(
+              streamId,
+              //req.params.streamId,
+              extProtocol[ext]
+            );
+            contentType = contentTypes[ext];
+            videoPath = `${streamPath}/${req.params.extension}`;
+          } catch (err) {
+            Logger.error(`${loggerIdent}: ${err.message}`)
+            res.status(404).send('Not Found');
+          }
+          Logger.debug(`videoPath: ${videoPath}`);
         if (fs.existsSync(videoPath)) {
           res.status(200).set('Content-Type', contentType);
           fs.createReadStream(videoPath).pipe(res);
         } else {
           Logger.error("Stream isn't ready");
           res.status(400).send("Stream isn't ready");
+        }
+
+        } else {
+          Logger.error(`Requested extension not supported: ${ext}`);
+          res.status(400).send('Bad Request');
         }
       }
     );
@@ -115,93 +136,4 @@ class ExpressServer {
     });
   }
 }
-
-// const expressServer = {}
-
-// expressServer.config = {
-//   port: 3000,
-//   endpoint: 'wavejs'
-// }
-
-// expressServer.start = (session, endpoint) => {
-//   /* initial config */
-//   app.disable('x-powered-by');
-
-//   app.use(express.urlencoded({ extended: true }));
-//   app.use(express.json());
-//   app.use(expressHttpLogger);
-
-//   app.get('/streams', (req, res) => {
-//     res.status(200).json(Object.fromEntries(session.streams));
-//   });
-
-//   expressServer.registerEndpoint(session, endpoint);
-
-//   app.use((req, res, next) => {
-//     res.status(404).send("😵 Can't find what you're looking for!");
-//   });
-
-//   app.use((err, req, res, next) => {
-//     console.error(err.stack);
-//     res.status(500).send('☠️ Something Broke!');
-//   });
-
-//   let server = http.createServer(app);
-
-//   server.listen(PORT, () => {
-//     console.log(`🚀 Express blasting off on port ${PORT}`);
-//   });
-// };
-
-// expressServer.registerEndpoint = (session, endpoint) => {
-//   app.get(`/${endpoint}/:streamId/:m3u8`, (req, res) => {
-//     //this is the area where we need to connect fmpg to the server
-//     const stream = session.getStream(req.params.streamId);
-//     const videoPath = `${stream.address}/${req.params.m3u8}`;
-//     //'application/vnd.apple.mpegurl'
-//     res.status(200).set('Content-Type', contentTypes['.m3u8']);
-//     fs.createReadStream(videoPath).pipe(res);
-//   });
-// };
-
-// const expressServer = (session, endpoint) => {
-//   const app = express();
-
-//   /* initial config */
-//   app.disable('x-powered-by');
-
-//   app.use(express.urlencoded({ extended: true }));
-//   app.use(express.json());
-//   app.use(expressHttpLogger);
-
-//   app.get('/streams', (req, res) => {
-//     res.status(200).json(Object.fromEntries(session.streams));
-//   });
-
-//   //get playlist route
-//   app.get(`/${endpoint}/:streamId/:m3u8`, (req, res) => {
-//     //this is the area where we need to connect fmpg to the server
-//     const stream = session.getStream(req.params.streamId);
-//     const videoPath = `${stream.address}/${req.params.m3u8}`;
-//     //'application/vnd.apple.mpegurl'
-//     res.status(200).set('Content-Type', contentTypes['.m3u8']);
-//     fs.createReadStream(videoPath).pipe(res);
-//   });
-
-//   app.use((req, res, next) => {
-//     res.status(404).send("😵 Can't find what you're looking for!");
-//   });
-
-//   app.use((err, req, res, next) => {
-//     console.error(err.stack);
-//     res.status(500).send('☠️ Something Broke!');
-//   });
-
-//   let server = http.createServer(app);
-
-//   server.listen(PORT, () => {
-//     console.log(`🚀 Express blasting off on port ${PORT}`);
-//   });
-// };
-
 module.exports = ExpressServer;

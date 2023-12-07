@@ -270,7 +270,7 @@ const rtmpPacketParse = (config, state) => {
   rtmpChunkMessageHeaderRead(config, state);
   // if parserpacket type is greater than the aggregate type, the packet is broken and process should terminate
   if (state.parserPacket.header.type > config.type.metadata) {
-    console.log('rtmp packet parse error.', state.parserPacket);
+    Logger.error('rtmp packet parse error.', state.parserPacket);
     stop(config, state, streamStorage);
   }
 };

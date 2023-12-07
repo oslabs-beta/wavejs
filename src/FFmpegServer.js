@@ -1,7 +1,7 @@
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const _ = require('lodash');
-
+const Logger = require('./logger');
 const FileController = require('./FileController');
 const streamStorage = require('./session');
 
@@ -46,7 +46,7 @@ class FFmpegServer {
     }
   }
   listen() {
-    console.log(
+    Logger.info(
       `🎥 FFmpeg Server starting at rtmp://127.0.0.1:${this.port}`
       //`🎥 FFmpeg Server starting at rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
     );
@@ -124,19 +124,19 @@ class FFmpegServer {
       .output(fullOutput)
       .inputOptions('-listen 1')
       .on('start', (commandLine) => {
-        console.log('Spawned Ffmpeg with command: ' + commandLine);
+        Logger.debug('Spawned Ffmpeg with command: ' + commandLine);
       })
       .on('codecData', function (data) {
-        console.log(
+        Logger.debug(
           'Input is ' + data.audio + ' audio ' + 'with ' + data.video + ' video'
         );
       })
       .on('progress', (progress) => {
-        console.log('Processing: ' + JSON.stringify(progress));
+        Logger.info('Processing: ' + JSON.stringify(progress));
       })
       // event handler for end of stream
       .on('end', async () => {
-        console.log('Success! Your live stream has been saved.');
+        Logger.debug('Success! Your live stream has been saved.');
         this.session.setOutputStreamActive(
           this.streamConfig.streamId,
           'dash',
@@ -151,7 +151,7 @@ class FFmpegServer {
       })
       // error handling
       .on('error', (err) => {
-        console.log('An error occurred: ' + err.message);
+       Logger.error('An error occurred: ' + err.message);
         this.session.setOutputStreamActive(
           this.streamConfig.streamId,
           'dash',
@@ -160,10 +160,10 @@ class FFmpegServer {
         process.exit(0);
       })
       .on('stderr', function (stderrLine) {
-        console.log('Stderr output: ' + stderrLine);
+        Logger.debug('Stderr output: ' + stderrLine);
       })
       .on('connection', () => {
-        console.log('Someone Connected!');
+        Logger.info('Someone Connected!');
 
         this.session.setOutputStreamActive(
           this.streamConfig.streamId,
@@ -206,10 +206,10 @@ class FFmpegServer {
       .output(fullOutput)
       .inputOptions('-listen 1')
       .on('start', (commandLine) => {
-        console.log('Spawned Ffmpeg with command: ' + commandLine);
+        Logger.debug('Spawned Ffmpeg with command: ' + commandLine);
       })
       .on('codecData', function (data) {
-        console.log(
+        Logger.info(
           'Input is ' + data.audio + ' audio ' + 'with ' + data.video + ' video'
         );
       })
@@ -219,7 +219,7 @@ class FFmpegServer {
       // })
       // event handler for end of stream
       .on('end', async () => {
-        console.log('Success! Your live stream has been saved.');
+        Logger.info('Success! Your live stream has been saved.');
         this.session.setOutputStreamActive(
           this.streamConfig.streamId,
           'hls',
@@ -234,7 +234,7 @@ class FFmpegServer {
       })
       // error handling
       .on('error', (err) => {
-        console.log('An error occurred: ' + err.message);
+        Logger.error('An error occurred: ' + err.message);
         this.session.setOutputStreamActive(
           this.streamConfig.streamId,
           'hls',
@@ -246,7 +246,7 @@ class FFmpegServer {
       //   console.log('Stderr output: ' + stderrLine);
       // })
       .on('connection', () => {
-        console.log('Someone Connected!');
+        Logger.info('Someone Connected!');
 
         this.session.setOutputStreamActive(
           this.streamConfig.streamId,

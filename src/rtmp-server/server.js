@@ -31,7 +31,7 @@ const Server = () => {
     const state = _.cloneDeep(baseState);
     state.setSocket(socket);
     state.setId();
-    console.log('The streamId is', state.id);
+    Logger.info('The streamId is', state.id);
 
     //bind onSocket handler to config and state
     const handleRTMPHandshake = partialMod(baseHandleRTMPHandshake, [
@@ -124,7 +124,7 @@ const Server = () => {
             if (retry) {
               retry = false;
               writeSocket.connect(newPort, LOCALHOST_ADDRESS, () => {
-                console.log(`${newPort} is connected!`);
+                Logger.info(`${newPort} is connected!`);
                 clearInterval(portInterval);
               });
             }
