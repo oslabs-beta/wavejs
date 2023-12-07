@@ -1,7 +1,7 @@
 const ExpressServer = require('./ExpressServer');
 const FFMpegServer = require('./FFmpegServer');
 const session = require('./session');
-const { Server } = require('./rtmp-server');
+const { Server } = require('../rtmp-server');
 //const { Server:RTMPServer } = require('./rtmp-server')
 
 class WaveJS {

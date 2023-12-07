@@ -1,4 +1,4 @@
-const FileController = require('../wavejs/FileController');
+const FileController = require('../src/FileController');
 const fs = require('node:fs/promises')
 const crypto = require('node:crypto')
 const path = require('node:path');

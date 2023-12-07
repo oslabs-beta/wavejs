@@ -1,9 +1,9 @@
 const net = require('net');
 const _ = require('lodash');
-const FFmpegServer = require('../FFmpegServer');
-const session = require('../session');
-const utils = require('../utils');
-const Logger = require('../logger');
+const FFmpegServer = require('../src/FFmpegServer');
+const session = require('../src/session');
+const utils = require('../src/utils');
+const Logger = require('../src/logger');
 
 const MINIMUM_PORT = 1024;
 const MAXIMUM_PORT = 49151;
@@ -16,7 +16,7 @@ const {
 const { partialMod } = require('./utils');
 
 const { config: baseConfig, state: baseState } = require('./_magic');
-const streamStorage = require('../session'); //maybe use this for close
+const streamStorage = require('../src/session'); //maybe use this for close
 
 //Run on Init
 const Server = () => {

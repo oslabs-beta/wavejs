@@ -7,10 +7,9 @@ const RtmpPacket = require('./RtmpPacket');
 const Handshake = require('./node_rtmp_handshake');
 
 const rtmpActions = require('./rtmp_actions');
-const utils = require('../utils');
-const Logger = require('../logger');
-const streamStorage = require('../session');
-
+const utils = require('../src/utils');
+const Logger = require('../src/logger');
+const streamStorage = require('../src/session');
 
 let streamId = 'test';
 
@@ -90,14 +89,28 @@ const handleRTMPHandshake = (config, state, streamStorage, data) => {
         //connection has occured, we're away at the races
         //read chunk
         // Logger.debug(`[rtmp handshake] begin processing`)
-        return readRtmpChunk(config, state, streamStorage, data, bytesRead, bytes);
+        return readRtmpChunk(
+          config,
+          state,
+          streamStorage,
+          data,
+          bytesRead,
+          bytes
+        );
     }
   }
 };
 
 /* RTMP RESOURCES */
 
-const readRtmpChunk = (config, state, streamStorage, data, bytesRead, bytes) => {
+const readRtmpChunk = (
+  config,
+  state,
+  streamStorage,
+  data,
+  bytesRead,
+  bytes
+) => {
   //initialize size, offset, timestamp
   let size = 0;
   let offset = 0;
@@ -348,7 +361,6 @@ const rtmpControlHandler = (config, state) => {
   }
 };
 
-
 const rtmpEventHandler = () => {}; //this is a void function in NMS, no idea why
 
 const rtmpAudioHandler = (config, state, streamStorage) => {
@@ -387,7 +399,16 @@ const rtmpAudioHandler = (config, state, streamStorage) => {
     Logger.info(
       `[rtmp publish] audio received. id=${state.id} streamPath=${state.streams.publish.path} sound_format=${sound_format} sound_type=${sound_type} sound_size=${sound_size} sound_rate=${sound_rate} codec_name=${state.audio.codecName} ${state.audio.sampleRate} ${state.audio.channels}ch`
     );
-    streamStorage.events.emit('audio', {id: state.id, stream_path: state.streams.publish.path, sound_format, sound_size, sound_rate, codec_name: state.audio.codecName, sample_rate: state.audio.sampleRate, channels: state.audio.channels});
+    streamStorage.events.emit('audio', {
+      id: state.id,
+      stream_path: state.streams.publish.path,
+      sound_format,
+      sound_size,
+      sound_rate,
+      codec_name: state.audio.codecName,
+      sample_rate: state.audio.sampleRate,
+      channels: state.audio.channels,
+    });
   }
 
   //AAC, OPUS
@@ -414,7 +435,16 @@ const rtmpAudioHandler = (config, state, streamStorage) => {
     Logger.info(
       `[rtmp publish] audio received. id=${state.id} streamPath=${state.streams.publish.path} sound_format=${sound_format} sound_type=${sound_type} sound_size=${sound_size} sound_rate=${sound_rate} codec_name=${state.audio.codecName} ${state.audio.sampleRate} ${state.audio.channels}ch`
     );
-    streamStorage.events.emit('audio', {id: state.id, stream_path: state.streams.publish.path, sound_format, sound_size, sound_rate, codec_name: state.audio.codecName, sample_rate: state.audio.sampleRate, channels: state.audio.channels});
+    streamStorage.events.emit('audio', {
+      id: state.id,
+      stream_path: state.streams.publish.path,
+      sound_format,
+      sound_size,
+      sound_rate,
+      codec_name: state.audio.codecName,
+      sample_rate: state.audio.sampleRate,
+      channels: state.audio.channels,
+    });
   }
 };
 
@@ -500,7 +530,6 @@ const rtmpVideoHandler = (config, state, streamStorage) => {
       state.video.height = info.height;
       state.video.profileName = AV.getAVCProfileName(info);
       state.video.level = info.level;
-
     }
   }
 
@@ -511,8 +540,16 @@ const rtmpVideoHandler = (config, state, streamStorage) => {
     Logger.info(
       `[rtmp publish] Handle video. id=${state.id} streamPath=${state.streams.publish.path} frame_type=${frame_type} codec_id=${codec_id} codec_name=${state.video.codecName} ${state.video.width}x${state.video.height}`
     );
-    streamStorage.events.emit('video', {id:state.id, stream_path: state.streams.publish.path, frame_type, codec_id, codec_name: state.video.codecName, video_width: state.video.width, video_height: state.video.height });
-   }
+    streamStorage.events.emit('video', {
+      id: state.id,
+      stream_path: state.streams.publish.path,
+      frame_type,
+      codec_id,
+      codec_name: state.video.codecName,
+      video_width: state.video.width,
+      video_height: state.video.height,
+    });
+  }
 };
 
 const rtmpDataHandler = (config, state, streamStorage) => {
@@ -523,10 +560,9 @@ const rtmpDataHandler = (config, state, streamStorage) => {
     state.parserPacket.header.length
   );
   let dataMessage = AMF.decodeAmf0Data(payload);
-  
+
   switch (dataMessage.cmd) {
     case '@setDataFrame': {
-
       if (dataMessage.dataObj) {
         state.audio.sampleRate = dataMessage.dataObj.audiosamplerate;
         state.audio.channels = dataMessage.dataObj.stereo ? 2 : 1;
@@ -540,22 +576,26 @@ const rtmpDataHandler = (config, state, streamStorage) => {
         dataObj: dataMessage.dataObj,
       };
       state.metaData = AMF.encodeAmf0Data(opt);
-      Logger.debug(`[rtmp data] data received. cmd=${dataMessage.cmd}, method=${dataMessage.method} ${utils.objRepr(dataMessage.dataObj)}`)
+      Logger.debug(
+        `[rtmp data] data received. cmd=${dataMessage.cmd}, method=${
+          dataMessage.method
+        } ${utils.objRepr(dataMessage.dataObj)}`
+      );
       //build JIT encoding info
 
       streamStorage.events.emit('metadata', {
-        id: state.id, 
-        video_width: dataMessage.dataObj.width, 
-        video_height: dataMessage.dataObj.video_height, 
+        id: state.id,
+        video_width: dataMessage.dataObj.width,
+        video_height: dataMessage.dataObj.video_height,
         video_fps: dataMessage.dataObj.framerate,
         video_bit_rate: dataMessage.dataObj.videodatarate,
-        video_codec:config.video.codecName[dataMessage.dataObj.videocodecid],
+        video_codec: config.video.codecName[dataMessage.dataObj.videocodecid],
         audio_codec: config.audio.codecName[dataMessage.dataObj.audiocodecid],
         audio_sample_rate: dataMessage.dataObj.audiosamplerate,
-        audio_channels:  dataMessage.dataObj.stereo ? 2 : 1,
+        audio_channels: dataMessage.dataObj.stereo ? 2 : 1,
         audio_bit_rate: dataMessage.dataObj.audiodatarate,
         audio_sample_size: dataMessage.dataObj.audiosamplesize,
-        encoder: dataMessage.dataObj.encoder
+        encoder: dataMessage.dataObj.encoder,
       });
 
       break;
@@ -613,7 +653,7 @@ const rtmpInvokeHandler = (config, state, streamStorage) => {
 
 /* RTMP CONTROL HANDLERS */
 
-const onConnect = (config, state, streamStorage, invokeMessage ) => {
+const onConnect = (config, state, streamStorage, invokeMessage) => {
   //invokeMessage.cmdObj.app = invokeMessage.cmdObj.app.replace('/', ''); //fix jwplayer
   //context.nodeEvent.emit('preConnect', this.id, invokeMessage.cmdObj);
   if (!state.status.isStarting) {
@@ -650,7 +690,11 @@ const onConnect = (config, state, streamStorage, invokeMessage ) => {
     } args=${JSON.stringify(invokeMessage.cmdObj)}`
   );
   //emit it for the server
-  streamStorage.events.emit('connect', {id: state.id, app: state.connect.appname, tcURL: invokeMessage.cmdObj.tcUrl} )
+  streamStorage.events.emit('connect', {
+    id: state.id,
+    app: state.connect.appname,
+    tcURL: invokeMessage.cmdObj.tcUrl,
+  });
 };
 
 const onCreateStream = (config, state, streamStorage, invokeMessage) => {
@@ -687,7 +731,7 @@ const onPublish = (config, state, streamStorage, invokeMessage) => {
     Logger.info(
       `[rtmp publish] Already has a stream. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.streams.publish.id}`
     );
-    
+
     rtmpActions.sendStatusMessage(
       config,
       state,
@@ -710,13 +754,19 @@ const onPublish = (config, state, streamStorage, invokeMessage) => {
       'Connection already publishing'
     );
   } else {
-    
-    Logger.info(`[rtmp publish] New stream. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.streams.publish.id}`);
-    
+    Logger.info(
+      `[rtmp publish] New stream. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.streams.publish.id}`
+    );
+
     streamStorage.publishers.set(state.streams.publish.path, state.id);
     state.status.isPublishing = true;
 
-    streamStorage.events.emit('publish', {id: state.id, stream_path: state.streams.publish.path, stream_id: state.streams.publish.id, publish_args: state.streams.publish.args});
+    streamStorage.events.emit('publish', {
+      id: state.id,
+      stream_path: state.streams.publish.path,
+      stream_id: state.streams.publish.id,
+      publish_args: state.streams.publish.args,
+    });
 
     rtmpActions.sendStatusMessage(
       config,
@@ -740,13 +790,17 @@ const onPublish = (config, state, streamStorage, invokeMessage) => {
 const onReceiveAudio = (config, state, invokeMessage) => {
   state.status.isReceiveAudio = invokeMessage.bool;
   //logger goes here
-  Logger.info(`[rtmp play] receiveAudio=${state.status.isReceiveAudio} id=${state.id} `);
+  Logger.info(
+    `[rtmp play] receiveAudio=${state.status.isReceiveAudio} id=${state.id} `
+  );
 };
 
 const onReceiveVideo = (config, state, invokeMessage) => {
   state.status.isReceiveVideo = invokeMessage.bool;
   //Logger goes here
-  Logger.info(`[rtmp play] receiveVideo=${state.status.isReceiveVideo} id=${state.id} `);
+  Logger.info(
+    `[rtmp play] receiveVideo=${state.status.isReceiveVideo} id=${state.id} `
+  );
 };
 
 const onCloseStream = (config, state, streamStorage) => {
@@ -756,7 +810,7 @@ const onCloseStream = (config, state, streamStorage) => {
 };
 
 const onDeleteStream = (config, state, streamStorage, invokeMessage) => {
-  Logger.debug(`[on delete] ${JSON.stringify(invokeMessage)}`)
+  Logger.debug(`[on delete] ${JSON.stringify(invokeMessage)}`);
   if (invokeMessage.streamId == state.streams.publish.id) {
     if (state.status.isPublishing) {
       //logging goes here
@@ -764,10 +818,14 @@ const onDeleteStream = (config, state, streamStorage, invokeMessage) => {
         `[rtmp publish] Close stream. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.streams.publish.id}`
       );
       //remove stream from publishers
-      streamStorage.publishers.delete(state.streams.publish.path)
+      streamStorage.publishers.delete(state.streams.publish.path);
       //emit close event
-      streamStorage.events.emit('close', {id: state.id, stream_path: state.streams.publish.path, stream_id: state.streams.publish.id})
-     
+      streamStorage.events.emit('close', {
+        id: state.id,
+        stream_path: state.streams.publish.path,
+        stream_id: state.streams.publish.id,
+      });
+
       if (state.status.isStarting) {
         rtmpActions.sendStatusMessage(
           config,
@@ -790,11 +848,15 @@ const stop = (config, state, streamStorage) => {
     state.status.isStarting = false;
 
     if (state.streams.play.id > 0) {
-      onDeleteStream(config, state, streamStorage, { streamId: state.streams.play.id });
+      onDeleteStream(config, state, streamStorage, {
+        streamId: state.streams.play.id,
+      });
     }
 
     if (state.streams.publish.id > 0) {
-      onDeleteStream(config, state, streamStorage, { streamId: state.streams.publish.id });
+      onDeleteStream(config, state, streamStorage, {
+        streamId: state.streams.publish.id,
+      });
     }
 
     if (state.pingInterval != null) {
@@ -803,7 +865,7 @@ const stop = (config, state, streamStorage) => {
     }
 
     Logger.info(`[rtmp disconnect] id=${state.id}`);
-    streamStorage.events.emit('disconnect', {id: state.id})
+    streamStorage.events.emit('disconnect', { id: state.id });
     state.connect.cmdObj.bytesWritten = state.socket.bytesWritten;
     state.connect.cmdObj.bytesRead = state.socket.bytesRead;
     state.socket.destroy();
