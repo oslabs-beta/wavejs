@@ -6,6 +6,8 @@ const streamStorage = {
   outputStreams: new Map(),
   supportedOutputFormats: ['dash', 'hls'],
   publishers: new Map(), // /LIVE/MY_COOL_STREAM, 3908f0_LIVE
+  // Track active live streams (each streamKey should only have 1 active live stream at a time)
+  activeLiveStreams: new Map(),
   ffmpegPorts: new Map(),
   /* FfmpegPort Methods */
   registerFfmpegPort(portNumber) {
@@ -31,6 +33,7 @@ const streamStorage = {
         },
       },
     });
+    this.activeLiveStreams.set(streamKey, streamId);
   },
   addOutputStream(streamId, protocol, active = true) {
     // Main error checking on protocol, active

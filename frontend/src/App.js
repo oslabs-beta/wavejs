@@ -42,7 +42,8 @@ function HLSVideo() {
       }}
     >
       <source
-        src="http://localhost:3000/wavejs/mvp-demo/manifest.m3u8"
+        src="http://localhost:3000/wavejs/TestUser/manifest.m3u8"
+        //src="http://localhost:3000/wavejs/mvp-demo/manifest.m3u8"
         type="application/x-mpegURL"
       />
       {/* <source src="https://archive.org/download/ElephantsDream/ed_hd.ogv" type="video/ogg" /> */}
@@ -62,6 +63,7 @@ const ShakaWrapper = () => {
 
     async function loadAsset() {
       // Load an asset.
+      //await player.load('http://localhost:3000/wavejs/TestUser/manifest.mpd');
       await player.load('http://localhost:3000/wavejs/mvp-demo/manifest.mpd');
 
       // Trigger play.

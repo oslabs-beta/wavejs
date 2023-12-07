@@ -104,9 +104,11 @@ const Server = () => {
     let retry = true;
     let ffmpegServer = undefined;
 
+    let streamKey;
+
     streamStorage.events.once('publish', (args) => {
       // stream_path is /wavejs/streamkey => slice to isolate the stream key
-      let streamKey = args.stream_path.slice(8);
+      streamKey = args.stream_path.slice(8);
       ffmpegServer = new FFmpegServer(session, newPort);
       ffmpegServer.configureAV({ hlsListSize: ['-hls_list_size', '0'] });
       ffmpegServer.configureStream({
@@ -137,44 +139,15 @@ const Server = () => {
       checkIfPortIsOpen();
     });
 
-    // const writeSocket = new net.Socket();
-    // let retry = true;
-
-    // writeSocket.on('error', (err) => {
-    //   retry = true;
-    //   Logger.error(`[write socket] socket error: ${err}`);
-    // });
-
-    // writeSocket.on('connect', () => {
-    //   Logger.debug(`[write socket] successful connection`);
-    // });
-
-    // writeSocket.on('data', (data) => {
-    //   Logger.debug(`[write socket] data received`);
-    // });
-    // writeSocket.on('ready', () => {
-    //   Logger.debug(`[write socket] socket ready`);
-    // });
-
-    // const checkIfPortIsOpen = () => {
-    //   const checkPort = () => {
-    //     try {
-    //       if (retry) {
-    //         retry = false;
-    //         writeSocket.connect(newPort, LOCALHOST_ADDRESS, () => {
-    //           console.log(`${newPort} is connected!`);
-    //           clearInterval(portInterval);
-    //         });
-    //       }
-    //     } catch (err) {
-    //       retry = true;
-    //       Logger.error('[write socket] Port is not open yet');
-    //     }
-    //   };
-    //   const portInterval = setInterval(checkPort, 500);
-    // };
-
-    // checkIfPortIsOpen();
+    streamStorage.events.on('disconnect', (arg) => {
+      if (arg.id === state.id) {
+        writeSocket.destroy();
+        if (streamStorage.activeLiveStreams.has(streamKey))
+          streamStorage.activeLiveStreams.delete(streamKey);
+        if (streamStorage.ffmpegPorts.has(String(newPort)))
+          streamStorage.ffmpegPorts.delete(String(newPort));
+      }
+    });
 
     let cachedData = undefined;
 

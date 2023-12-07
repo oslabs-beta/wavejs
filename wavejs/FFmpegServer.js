@@ -138,11 +138,12 @@ class FFmpegServer {
           'dash',
           false
         );
-        await this.session.deleteOutputStream(
-          this.streamConfig.streamId,
-          'dash'
-        );
-        process.exit(0);
+        /*COMMENT LINES 141 to 145 in to delete files after stream has ended */
+        // await this.session.deleteOutputStream(
+        //   this.streamConfig.streamId,
+        //   'dash'
+        // );
+        //process.exit(0);
       })
       // error handling
       .on('error', (err) => {
@@ -220,11 +221,12 @@ class FFmpegServer {
           'hls',
           false
         );
-        await this.session.deleteOutputStream(
-          this.streamConfig.streamId,
-          'hls'
-        );
-        process.exit(0);
+        /*COMMENT LINES 225 to 228 in to delete files after stream has ended */
+        // await this.session.deleteOutputStream(
+        //   this.streamConfig.streamId,
+        //   'hls'
+        // );
+        //process.exit(0);
       })
       // error handling
       .on('error', (err) => {
