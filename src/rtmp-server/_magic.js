@@ -1,5 +1,5 @@
 //const streamStorage = require('./simpleOut')
-const utils = require('./utils');
+const utils = require('./rtmp-utils');
 
 const config = {
   port: 1935,

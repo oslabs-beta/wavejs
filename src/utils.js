@@ -1,4 +1,3 @@
-const net = require('node:net');
 const utils = {};
 
 utils.objRepr = (obj, kVSep = ':', entrySep = ', ') => {

@@ -13,10 +13,12 @@ const {
   handleRTMPHandshake: baseHandleRTMPHandshake,
   stop: baseStop,
 } = require('./rtmp_handlers');
-const { partialMod } = require('./utils');
+const { partialMod } = require('../utils');
 
 const { config: baseConfig, state: baseState } = require('./_magic');
 const streamStorage = require('../session'); //maybe use this for close
+
+const loggerIdent = '[rtmp gateway]'
 
 //Run on Init
 const Server = () => {
@@ -31,7 +33,7 @@ const Server = () => {
     const state = _.cloneDeep(baseState);
     state.setSocket(socket);
     state.setId();
-    Logger.info('The streamId is', state.id);
+    Logger.debug(`${loggerIdent} streamId set to ${state.id}`);
 
     //bind onSocket handler to config and state
     const handleRTMPHandshake = partialMod(baseHandleRTMPHandshake, [
@@ -52,18 +54,18 @@ const Server = () => {
     error
     disconnect
     */
-    const logArgs = (event, arg) =>
-      Logger.debug(`[emitter] ${event}: ${JSON.stringify(arg)}`);
-    streamStorage.events.on('audio', (arg) => logArgs('audio', arg));
-    streamStorage.events.on('video', (arg) => logArgs('video', arg));
-    streamStorage.events.on('metadata', (arg) => logArgs('metadata', arg));
-    streamStorage.events.on('connect', (arg) => logArgs('connect', arg));
-    streamStorage.events.on('publish', (arg) => logArgs('publish', arg));
-    streamStorage.events.on('close', (arg) => logArgs('close', arg));
-    streamStorage.events.on('disconnect', (arg) => logArgs('disconnect', arg));
-    streamStorage.events.on('error', (arg) =>
-      Logger.error(`[emitter] error: ${utils.objRepr(arg)}`)
-    );
+    // const logArgs = (event, arg) =>
+    //   Logger.debug(`[emitter] ${event}: ${JSON.stringify(arg)}`);
+    // streamStorage.events.on('audio', (arg) => logArgs('audio', arg));
+    // streamStorage.events.on('video', (arg) => logArgs('video', arg));
+    // streamStorage.events.on('metadata', (arg) => logArgs('metadata', arg));
+    // streamStorage.events.on('connect', (arg) => logArgs('connect', arg));
+    // streamStorage.events.on('publish', (arg) => logArgs('publish', arg));
+    // streamStorage.events.on('close', (arg) => logArgs('close', arg));
+    // streamStorage.events.on('disconnect', (arg) => logArgs('disconnect', arg));
+    // streamStorage.events.on('error', (arg) =>
+    //   Logger.error(`[emitter] error: ${utils.objRepr(arg)}`)
+    // );
 
     // Generate a random port (localhost ports 1024 to 49151 are available for use)
     const portGenerator = () => {
@@ -94,9 +96,9 @@ const Server = () => {
       Logger.debug(`[write socket] successful connection`);
     });
 
-    writeSocket.on('data', (data) => {
-      Logger.debug(`[write socket] data received`);
-    });
+    // writeSocket.on('data', (data) => { //eslint-disable-line no-unused-vars
+    //   Logger.debug(`[write socket] data received`);
+    // });
     writeSocket.on('ready', () => {
       Logger.debug(`[write socket] socket ready`);
     });
@@ -110,7 +112,7 @@ const Server = () => {
       // stream_path is /wavejs/streamkey => slice to isolate the stream key
       streamKey = args.stream_path.slice(8);
       ffmpegServer = new FFmpegServer(session, newPort);
-      ffmpegServer.configureAV({ hlsListSize: ['-hls_list_size', '0'] });
+      ffmpegServer.configureAV({ hlsListSize:  0 });
       ffmpegServer.configureStream({
         endpoint: 'wavejs',
         streamId: String(state.id),
@@ -181,12 +183,12 @@ const Server = () => {
     });
     state.socket.on('error', (err) => {
       if (err.code !== 'ECONNRESET') {
-        Logger.error(`Outer socket error: ${err}`);
+        Logger.error(`${loggerIdent} outer socket error: ${err}`);
         stop();
       }
     });
     state.socket.on('timeout', () => {
-      Logger.error(`Outer socket timeout`);
+      Logger.error(`${loggerIdent} outer socket timeout`);
       stop();
     });
     state.socket.setTimeout(state.connect.pingTimeout);
@@ -196,13 +198,13 @@ const Server = () => {
     server: tcpServer,
     run: () => {
       tcpServer.listen(config.port, () => {
-        Logger.info(`🔮 RTMP Server started on port: ${config.port} `);
+        Logger.info(`🔮 Wave.js RTMP gateway started on port: ${config.port} `);
       });
       tcpServer.on('error', (err) => {
-        Logger.error(`RTMP Server: ${err}`);
+        Logger.error(`${loggerIdent} server: ${err}`);
       });
       tcpServer.on('close', () => {
-        Logger.info(`🔮 RTMP Server closed!`);
+        Logger.info(`${loggerIdent} 🔮 RTMP Server closed!`);
       });
     },
     stop: () => {

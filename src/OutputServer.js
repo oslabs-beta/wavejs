@@ -53,7 +53,7 @@ class OutputServer {
       Logger.error(`404: ${req.baseUrl}`);
       res.status(404).send("😵 Can't find what you're looking for!");
     });
-    this.app.use((err, req, res, next) => {
+    this.app.use((err, req, res, next) => { //eslint-disable-line no-unused-vars
       const defaultError = {
         code: 500,
         log: 'Error handler caught unknown middleware error',

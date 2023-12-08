@@ -1,5 +1,5 @@
 //rtmpChunks Create is needed here
-const utils = require('./utils');
+const utils = require('./rtmp-utils');
 const RtmpPacket = require('./RtmpPacket');
 const AMF = require('./node_core_amf');
 

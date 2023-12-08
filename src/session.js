@@ -1,5 +1,4 @@
 const FileController = require('./FileController');
-const { PassThrough } = require('node:stream');
 const { EventEmitter } = require('node:events');
 
 const streamStorage = {
