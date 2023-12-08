@@ -78,7 +78,7 @@ const streamStorage = {
       );
     const state = this.outputStreams.get(streamId);
     if (state === undefined)
-      throw new Error("StreamID hasnt't been created yet");
+      throw new Error("StreamID hasn't been created yet");
     switch (protocol) {
       case 'dash': {
         return state.streams.dash.filePath;

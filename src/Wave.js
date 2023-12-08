@@ -1,4 +1,4 @@
-const ExpressServer = require('./ExpressServer');
+const OutputServer = require('./OutputServer');
 const FFMpegServer = require('./FFmpegServer');
 const session = require('./session');
 const { Server } = require('./rtmp-server');
@@ -7,7 +7,7 @@ const { Server } = require('./rtmp-server');
 class WaveJS {
   constructor() {
     this.session = session;
-    this.expressServer = new ExpressServer(this.session);
+    this.outputServer = new OutputServer(this.session);
     this.ffmpegServer = new FFMpegServer(this.session);
     this.rtmpServer = Server();
     //this.rtmpServer = new RTMPServer()
@@ -19,16 +19,16 @@ class WaveJS {
     this.ffmpegServer.configureStream(updatedSettings);
   }
   setOutput(updatedSettings) {
-    this.expressServer.configureOutput(updatedSettings);
+    this.outputServer.configureOutput(updatedSettings);
   }
   listen() {
     this.rtmpServer.run();
     //this.ffmpegServer.listen();
-    this.expressServer.listen();
+    this.outputServer.listen();
   }
   close() {
     this.ffmpegServer.close();
-    this.expressServer.close();
+    this.outputServer.close();
   }
 }
 
