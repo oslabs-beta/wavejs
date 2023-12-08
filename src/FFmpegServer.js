@@ -56,7 +56,7 @@ class FFmpegServer {
   }
   listen() {
     Logger.info(
-      `🎥 Wave.js proto transmuxer starting at rtmp://127.0.0.1:${this.port}`
+      `🎥 Wave.js transmuxer starting at rtmp://127.0.0.1:${this.port}`
       //`🎥 FFmpeg Server starting at rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
     );
     this.session.initOutputStream(
