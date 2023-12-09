@@ -162,7 +162,6 @@ class FFmpegServer {
   }
   setMediaDirectory(path) {
     this.mediaRoot = path;
-    console.log('ffmpeg server, media root set', this.mediaRoot)
   }
   listen() {
     Logger.info(
@@ -171,7 +170,7 @@ class FFmpegServer {
     );
     try {
       let mediaRoot = typeof this.mediaRoot === 'undefined' ? undefined : this.mediaRoot;
-      console.log('mediaRoot: ', mediaRoot)
+
       this.session.initOutputStream(
         this.streamConfig.streamId,
         this.streamConfig.userId,
