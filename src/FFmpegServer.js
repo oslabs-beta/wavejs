@@ -46,51 +46,74 @@ class FFmpegServer {
   }
   updateAVSettings(updatedConfig) {
     try {
-      let config = configFilter(updatedConfig);
-      config = configValPipe(config);
-      Object.entries(config).forEach(([key, val]) => {
-        this.avConfig[key] = val;
-      })      
+      let newConfig = configFilter(updatedConfig);
+      newConfig = configValPipe(newConfig);
+      const acceptedKeys = Object.keys(config.av);
+      const wrongKeys = [];
+      Object.entries(newConfig).forEach(([key, val]) => {
+        if (acceptedKeys.includes(key)) this.avConfig[key] = val;
+        else {wrongKeys.push(key)}
+      });
+      if (wrongKeys.length > 0) Logger.error(`${loggerIdent} some incorrect av config keys provided; wave.js is ignoring them: ${wrongKeys.join(', ')}`);
     } catch(err) {
       Logger.error(`${loggerIdent} ${err.message}`)
     }
   }
   updateGlobalSettings(updatedConfig) {
     try {
-      let config = configFilter(updatedConfig);
-      config = configValPipe(config);
-      Object.entries(config).forEach(([key, val]) => {
-        this.globalConfig[key] = val;
-      })      
+      let newConfig = configFilter(updatedConfig);
+      newConfig = configValPipe(newConfig);
+      const acceptedKeys = Object.keys(config.global);
+      const wrongKeys = [];
+      Object.entries(newConfig).forEach(([key, val]) => {
+        if (acceptedKeys.includes(key)) this.globalConfig[key] = val;
+        else {wrongKeys.push(key)}
+      });
+      if (wrongKeys.length > 0) Logger.error(`${loggerIdent} some incorrect global config keys provided; wave.js is ignoring them: ${wrongKeys.join(', ')}`);      
     } catch(err) {
       Logger.error(`${loggerIdent} ${err.message}`)
     }
   }
   updateStreamSettings(updatedConfig) {
     try {
-      let config = configFilter(updatedConfig);
-      config = configValPipe(config);
-      Object.entries(config).forEach(([key, val]) => {
-        this.streamConfig[key] = val;
-      })      
+      let newConfig = configFilter(updatedConfig);
+      newConfig = configValPipe(newConfig);
+      const acceptedKeys = Object.keys(config.stream);
+      const wrongKeys = [];
+      Object.entries(newConfig).forEach(([key, val]) => {
+        if (acceptedKeys.includes(key)) this.streamConfig[key] = val;
+        else {wrongKeys.push(key)}
+      });
+      if (wrongKeys.length > 0) Logger.error(`${loggerIdent} some incorrect stream config keys provided; wave.js is ignoring them: ${wrongKeys.join(', ')}`);
     } catch(err) {
       Logger.error(`${loggerIdent} ${err.message}`)
     }
   }
   updateProtocolSettings(protocol, updatedConfig) {
     try {
-      let config = configFilter(updatedConfig);
-      config = configValPipe(config);
-      Object.entries(config).forEach(([key, val]) => {
+      let newConfig = configFilter(updatedConfig);
+      newConfig = configValPipe(newConfig);
+      let hlsWrongKeys = [];
+      let dashWrongKeys = [];
+      Object.entries(newConfig).forEach(([key, val]) => {
         if (protocol === 'hls') {
-          this.hlsConfig[key] = val;
+
+          const hlsAcceptedKeys = Object.keys(config.hls);
+          if (hlsAcceptedKeys.includes(key)) this.hlsConfig[key] = val;
+          else {hlsWrongKeys.push(key)}
         }
         if (protocol === 'dash') {
-          this.dashConfig[key] = val;
+          const dashAcceptedKeys = Object.keys(config.dash);
+          if (dashAcceptedKeys.includes(key)) this.dashConfig[key] = val;
+          else {dashWrongKeys.push(key)}
         }
-      })      
+      });
+      if (hlsWrongKeys.length > 0) Logger.error(`${loggerIdent} some incorrect hls config keys provided; wave.js is ignoring them: ${hlsWrongKeys.join(', ')}`);
+      if (dashWrongKeys.length > 0) Logger.error(`${loggerIdent} some incorrect dash config keys provided; wave.js is ignoring them: ${dashWrongKeys.join(', ')}`);
+
     } catch(err) {
       Logger.error(`${loggerIdent} ${err.message}`)
+      throw err
     }
   }
   initStream() {

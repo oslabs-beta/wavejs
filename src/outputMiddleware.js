@@ -58,7 +58,6 @@ const outputMiddleware = {
   getStream(loggerIdent, session, req, res, next) {
     const streamId = session.activeLiveStreams.get(res.locals.streamKey);
     let videoPath, streamPath, contentType;
-    console.log('getStream')
     if (Object.keys(extProtocol).includes(res.locals.ext)) {
       try {
         streamPath = session.getOutputStreamPath(

@@ -1,3 +1,5 @@
+
+
 const globalConfig = {
   overwriteOutputFiles: true,//-y
   _cliArgs: {
@@ -140,6 +142,7 @@ const config = {
   stream: streamConfig
 }
 
+
 /* FUNCTIONS */
 
 const configMappedPipe = (config) => {
@@ -165,10 +168,10 @@ const convertMappedConfig = (config) => {
   }
   const output = [];
   const keys = Object.keys(config).filter(elem => elem !== '_cliArgs');
-  console.log(keys)
+
   let args = config._cliArgs;
   for (let key of keys) {
-    console.log('current', args[key])
+    
     output.push(args[key].flag)
     if (args[key].takesArg) {
       output.push(config[key])

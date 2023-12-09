@@ -65,7 +65,7 @@ class RTMPGateway {
   }
 
   onConnect(socket) {
-    console.log('on connect')
+
     /* INITIALIZE STATE */
     const state = _.cloneDeep(baseState);
     state.setSocket(socket);
@@ -81,7 +81,7 @@ class RTMPGateway {
     const writeSocket = new net.Socket();
     let cachedData = undefined;
 
-    Logger.debug(`${loggerIdent} streamId set to ${state.id}`);
+    Logger.debug(`${loggerIdent} connected, streamId set to ${state.id}`);
 
     /* Initialize session methods*/
     const handleRTMPHandshake = partialMod(baseHandleRTMPHandshake, [
@@ -96,7 +96,7 @@ class RTMPGateway {
           if (retry) {
             retry = false;
             writeSocket.connect(newPort, LOCALHOST_ADDRESS, () => {
-              Logger.info(`${newPort} is connected!`);
+              Logger.info(`${loggerIdent} connected at port ${newPort}`);
               clearInterval(portInterval);
             });
           }
