@@ -2,17 +2,21 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const _ = require('lodash');
 const Logger = require('./logger');
-
+const { 
+  config, 
+  configValPipe,
+  configMappedPipe, 
+  configUnmappedPipe,
+  configFilter,
+  configValPipe,
+ } = require('./ffmpegOptions');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 //TODO: Add support for MPEG-DASH specific output
 
-
-
-
 const streamConfig = {
-  endpoint: 'live',
+  endpoint: 'wavejs',
   streamId: 'test',
   userId: 'testUser',
 };
@@ -26,8 +30,13 @@ const videoAudioConfig = {
   audioChannels: '2',
   hlsTimeDuration: '1',
   hlsListSize: '1',
+  dashSegmentDuration: '8',
+  dashFragmentDuration: '1',
+  dashEnableChunkStreaming: true,
+  dashEnableLowLatency: true,
   protocols: ['hls'],
 };
+
 
 const loggerIdent = '[transmux]'
 
@@ -35,15 +44,81 @@ class FFmpegServer {
   constructor(session, port) {
     this.AVConfig = _.cloneDeep(videoAudioConfig);
     this.streamConfig = _.cloneDeep(streamConfig);
-    this.session = session;
-    this.streams = {
 
-    };
-    this.command = null;
+    this._avConfig = _.cloneDeep(config.av);
+    this._streamConfig = _.cloneDeep(config.stream);
+    this._globalConfig = _.cloneDeep(config.global);
+
+    this.session = session;
+    this.stream = null;
     this.port = port;
+
+    this.protocols = ['hls']
     this.dash = false;
     this.hls = false;
   }
+
+  setOutputProtocols(...args) {
+    const accepted = ['dash', 'hls'];
+    this.protocols = args.filter(protocol => accepted.includes(protocol));
+    if (this.protocols.includes('hls')) {
+      this._hlsConfig = _.cloneDeep(config.hls);
+    }
+    if (this.protocols.includes('dash')) {
+      this._dashConfig = _.cloneDeep(config.dash);
+    }
+  }
+  _updateAVSettings(updatedConfig) {
+    try {
+      let config = configFilter(updatedConfig);
+      config = configValPipe(config);
+      Object.entries(config).forEach(([key, val]) => {
+        this._avConfig[key] = val;
+      })      
+    } catch(err) {
+      Logger.error(`${loggerIdent} ${err.message}`)
+    }
+  }
+  _updateGlobalSettings(updatedConfig) {
+    try {
+      let config = configFilter(updatedConfig);
+      config = configValPipe(config);
+      Object.entries(config).forEach(([key, val]) => {
+        this._globalConfig[key] = val;
+      })      
+    } catch(err) {
+      Logger.error(`${loggerIdent} ${err.message}`)
+    }
+  }
+  _updateStreamSettings(updatedConfig) {
+    try {
+      let config = configFilter(updatedConfig);
+      config = configValPipe(config);
+      Object.entries(config).forEach(([key, val]) => {
+        this._streamConfig[key] = val;
+      })      
+    } catch(err) {
+      Logger.error(`${loggerIdent} ${err.message}`)
+    }
+  }
+  _updateProtocolSettings(protocol, updatedConfig) {
+    try {
+      let config = configFilter(updatedConfig);
+      config = configValPipe(config);
+      Object.entries(config).forEach(([key, val]) => {
+        if (protocol === 'hls') {
+          this._hlsConfig[key] = val;
+        }
+        if (protocol === 'dash') {
+          this._dashConfig[key] = val;
+        }
+      })      
+    } catch(err) {
+      Logger.error(`${loggerIdent} ${err.message}`)
+    }
+  }
+
+
   configureStream(updatedConfig) {
     for (let key in updatedConfig) {
       this.streamConfig[key] = updatedConfig[key];
@@ -51,7 +126,11 @@ class FFmpegServer {
   }
   configureAV(updatedConfig) {
     for (let key in updatedConfig) {
-      this.AVConfig[key] = String(updatedConfig[key]);
+      let newVal = updatedConfig[key];
+      if (typeof newVal === 'boolean') {
+        newVal = newVal === true? 1: 0;
+      }
+      this.AVConfig[key] = String(newVal);
     }
   }
   listen() {
@@ -63,7 +142,7 @@ class FFmpegServer {
       this.streamConfig.streamId,
       this.streamConfig.userId
     );
-    this.initCommand();
+    this.initStream();
     if (this.AVConfig.protocols.includes('hls')) this.addHLS();
     if (this.AVConfig.protocols.includes('dash')) this.addMPD();
     this.addEventListeners()
@@ -72,11 +151,11 @@ class FFmpegServer {
 
   close() {
       setTimeout(() => {
-        this.streams.kill();
+        this.stream.kill();
       }, 10 * 1000);
   }
 
-  initCommand() {
+  initStream() {
     this.stream = ffmpeg()
       .input(`rtmp://127.0.0.1:${this.port}`, { timeout: 42300 })
       .inputOptions([
@@ -108,12 +187,13 @@ class FFmpegServer {
       this.hls = true;
       this.session.addOutputStream(this.streamConfig.streamId, 'hls');
       let HLSOutput = this.session.getOutputStreamPath(
-        this.streamConfig.streamId, 'hls');
+        this.streamConfig.streamId, 'hls'
+        );
+      //
+      
+      let outputOptions = configUnmappedPipe(this._hlsConfig);
       this.stream.output(`${HLSOutput}/manifest.m3u8`)
-        .addOutputOptions([
-          '-hls_time', String(this.AVConfig.hlsTimeDuration),
-          '-hls_list_size', String(this.AVConfig.hlsListSize)
-        ])
+        .addOutputOptions(outputOptions)
       this.addOutputFormatting();
     } else {
       Logger.error(`${loggerIdent} stream has not been initialized.`)
@@ -125,6 +205,8 @@ class FFmpegServer {
       this.session.addOutputStream(this.streamConfig.streamId, 'dash');
       let dashOutput = this.session.getOutputStreamPath(
         this.streamConfig.streamId, 'dash');
+      
+
       this.stream.output(`${dashOutput}/manifest.mpd`)
         .addOutputOptions([
           '-seg_duration', '8',
@@ -215,6 +297,17 @@ class FFmpegServer {
                 true);
             }
           });
+  }
+  clone () {
+    const clone = new FFmpegServer()
+    clone.AVConfig = this.AVConfig;
+    clone.streamConfig = this.streamConfig;
+    clone.session = this.session;
+    clone.stream = this.stream;
+    clone.port = this.port;
+    clone.dash = this.dash;
+    clone.hls = this.hls;
+    return clone;
   }
 
 }

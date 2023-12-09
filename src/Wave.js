@@ -1,7 +1,7 @@
 const OutputServer = require('./OutputServer');
 const FFMpegServer = require('./FFmpegServer');
 const session = require('./session');
-const { Server } = require('./rtmp-server');
+const { RTMPGateway } = require('./rtmp-server');
 //const { Server:RTMPServer } = require('./rtmp-server')
 
 class WaveJS {
@@ -9,20 +9,23 @@ class WaveJS {
     this.session = session;
     this.outputServer = new OutputServer(this.session);
     this.ffmpegServer = new FFMpegServer(this.session);
-    this.rtmpServer = Server();
+    this.rtmpGateway = new RTMPGateway(this.session);
     //this.rtmpServer = new RTMPServer()
   }
   configureAV(updatedSettings) {
     this.ffmpegServer.configureAV(updatedSettings);
+    this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
   }
   setInput(updatedSettings) {
     this.ffmpegServer.configureStream(updatedSettings);
+    this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
   }
   setOutput(updatedSettings) {
     this.outputServer.configureOutput(updatedSettings);
   }
+  
   listen() {
-    this.rtmpServer.run();
+    this.rtmpGateway.listen();
     //this.ffmpegServer.listen();
     this.outputServer.listen();
   }
