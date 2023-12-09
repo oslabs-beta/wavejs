@@ -18,9 +18,9 @@ const streamStorage = {
   events: new EventEmitter(),
 
   /* output Stream Methods */
-  initOutputStream(streamId, streamKey) {
+  initOutputStream(streamId, streamKey, mediaRoot) {
     this.outputStreams.set(streamId, {
-      _fileController: new FileController(streamId, streamKey),
+      _fileController: new FileController(streamId, streamKey, mediaRoot),
       streams: {
         hls: {
           filePath: null,

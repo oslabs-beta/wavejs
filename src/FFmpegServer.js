@@ -116,6 +116,7 @@ class FFmpegServer {
       throw err
     }
   }
+  
   initStream() {
     this.stream = ffmpeg()
       .input(`rtmp://127.0.0.1:${this.port}`, { timeout: 42300 })
@@ -159,21 +160,33 @@ class FFmpegServer {
       Logger.error(`${loggerIdent} stream has not been initialized.`)
     }
   }
-  
+  setMediaDirectory(path) {
+    this.mediaRoot = path;
+    console.log('ffmpeg server, media root set', this.mediaRoot)
+  }
   listen() {
     Logger.info(
       `🎥 Wave.js transmuxer starting at rtmp://127.0.0.1:${this.port}`
       //`🎥 FFmpeg Server starting at rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
     );
-    this.session.initOutputStream(
-      this.streamConfig.streamId,
-      this.streamConfig.userId
-    );
-    this.initStream();
-    if (this.protocols.includes('hls')) this.addHLS();
-    if (this.protocols.includes('dash')) this.addMPD();
-    this.addEventListeners()
-    this.stream.run()
+    try {
+      let mediaRoot = typeof this.mediaRoot === 'undefined' ? undefined : this.mediaRoot;
+      console.log('mediaRoot: ', mediaRoot)
+      this.session.initOutputStream(
+        this.streamConfig.streamId,
+        this.streamConfig.userId,
+        mediaRoot
+      );
+      this.initStream();
+      if (this.protocols.includes('hls')) this.addHLS();
+      if (this.protocols.includes('dash')) this.addMPD();
+      this.addEventListeners()
+      this.stream.run()
+    } catch(err) {
+      Logger.error(`${loggerIdent} ${err.message}`);
+      throw err;
+    }
+    
   }
 
   close() {
@@ -267,6 +280,9 @@ class FFmpegServer {
     clone.streamConfig = this.streamConfig;
     clone.globalConfig = this.globalConfig;
     clone.protocols = this.protocols;
+    if (this.mediaRoot){
+      clone.mediaRoot = this.mediaRoot;
+    }
     if (this.hlsConfig) {
       clone.hlsConfig = this.hlsConfig;
     }

@@ -2,6 +2,8 @@ const OutputServer = require('./OutputServer');
 const FFMpegServer = require('./FFmpegServer');
 const session = require('./session');
 const { RTMPGateway } = require('./rtmp-server');
+
+const path = require('path')
 //const { Server:RTMPServer } = require('./rtmp-server')
 
 class WaveJS {
@@ -18,6 +20,7 @@ class WaveJS {
   }
   updateOutputProtocol(...args) {
     this.ffmpegServer.setOutputProtocols(...args);
+    this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
   }
   updateHLSOutput(updatedSettings) {
     if (!this.ffmpegServer.protocols.includes('hls')) {
@@ -43,6 +46,12 @@ class WaveJS {
   }
   updateOutputSettings(updatedSettings) {
     this.outputServer.configureOutput(updatedSettings);
+  }
+  updateMediaDir(...args) {
+    const mediaPath = path.join(...args)
+    this.ffmpegServer.setMediaDirectory(mediaPath);
+    this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
+
   }
   
   listen() {
