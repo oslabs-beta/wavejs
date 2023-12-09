@@ -12,15 +12,36 @@ class WaveJS {
     this.rtmpGateway = new RTMPGateway(this.session);
     //this.rtmpServer = new RTMPServer()
   }
-  configureAV(updatedSettings) {
-    this.ffmpegServer.configureAV(updatedSettings);
+  updateAVSettings(updatedSettings) {
+    this.ffmpegServer.updateAVSettings(updatedSettings);
     this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
   }
-  setInput(updatedSettings) {
-    this.ffmpegServer.configureStream(updatedSettings);
+  updateOutputProtocol(...args) {
+    this.ffmpegServer.setOutputProtocols(...args);
+  }
+  updateHLSOutput(updatedSettings) {
+    if (!this.ffmpegServer.protocols.includes('hls')) {
+      this.ffmpegServer.setOutputProtocols(
+        ...this.ffmpegServer.protocols,
+        'hls'
+      )
+    }
+    this.ffmpegServer.updateProtocolSettings('hls', updatedSettings)
+  }
+  updateMPDOutput(updatedSettings) {
+    if (!this.ffmpegServer.protocols.includes('dash')) {
+      this.ffmpegServer.setOutputProtocols(
+        ...this.ffmpegServer.protocols,
+        'dash'
+      )
+    }
+    this.ffmpegServer.updateProtocolSettings('dash', updatedSettings)
+  }
+  updateInputSettings(updatedSettings) {
+    this.ffmpegServer.updateStreamSettings(updatedSettings);
     this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
   }
-  setOutput(updatedSettings) {
+  updateOutputSettings(updatedSettings) {
     this.outputServer.configureOutput(updatedSettings);
   }
   

@@ -33,10 +33,22 @@ const AVConfig = {
       flag: '-acodec',
       takesArg: true,
     },
-    audioChannels: {flag: '-ac', takesArg: true},
-    aspectRatio: {flag: '-aspect', takesArg: true},
-    frameRate: {flag: '-r', takesArg: true},
-    h264Preset: {flag: '-preset', takesArg: true}
+    audioChannels: {
+      flag: '-ac', 
+      takesArg: true
+    },
+    aspectRatio: {
+      flag: '-aspect', 
+      takesArg: true
+    },
+    frameRate: {
+      flag: '-r', 
+      takesArg: true
+    },
+    h264Preset: {
+      flag: '-preset', 
+      takesArg: true
+    }
   }
 }
 
@@ -153,8 +165,10 @@ const convertMappedConfig = (config) => {
   }
   const output = [];
   const keys = Object.keys(config).filter(elem => elem !== '_cliArgs');
+  console.log(keys)
   let args = config._cliArgs;
   for (let key of keys) {
+    console.log('current', args[key])
     output.push(args[key].flag)
     if (args[key].takesArg) {
       output.push(config[key])

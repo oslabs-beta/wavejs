@@ -116,7 +116,7 @@ class RTMPGateway {
       transmuxServer.session = session;
       transmuxServer.port = newPort;
       // this is just used to tell transmuxer what the ids are
-      transmuxServer.configureStream({
+      transmuxServer.updateStreamSettings({
         streamId: String(state.id),
         userId: streamKey,
       });
