@@ -1,34 +1,67 @@
-const ExpressServer = require('./ExpressServer');
+const OutputServer = require('./OutputServer');
 const FFMpegServer = require('./FFmpegServer');
 const session = require('./session');
-const { Server } = require('./rtmp-server');
+const { RTMPGateway } = require('./rtmp-server');
+
+const path = require('path')
 //const { Server:RTMPServer } = require('./rtmp-server')
 
 class WaveJS {
   constructor() {
     this.session = session;
-    this.expressServer = new ExpressServer(this.session);
+    this.outputServer = new OutputServer(this.session);
     this.ffmpegServer = new FFMpegServer(this.session);
-    this.rtmpServer = Server();
+    this.rtmpGateway = new RTMPGateway(this.session);
     //this.rtmpServer = new RTMPServer()
   }
-  configureAV(updatedSettings) {
-    this.ffmpegServer.configureAV(updatedSettings);
+  updateAVSettings(updatedSettings) {
+    this.ffmpegServer.updateAVSettings(updatedSettings);
+    this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
   }
-  setInput(updatedSettings) {
-    this.ffmpegServer.configureStream(updatedSettings);
+  updateOutputProtocol(...args) {
+    this.ffmpegServer.setOutputProtocols(...args);
+    this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
   }
-  setOutput(updatedSettings) {
-    this.expressServer.configureOutput(updatedSettings);
+  updateHLSOutput(updatedSettings) {
+    if (!this.ffmpegServer.protocols.includes('hls')) {
+      this.ffmpegServer.setOutputProtocols(
+        ...this.ffmpegServer.protocols,
+        'hls'
+      )
+    }
+    this.ffmpegServer.updateProtocolSettings('hls', updatedSettings)
   }
+  updateMPDOutput(updatedSettings) {
+    if (!this.ffmpegServer.protocols.includes('dash')) {
+      this.ffmpegServer.setOutputProtocols(
+        ...this.ffmpegServer.protocols,
+        'dash'
+      )
+    }
+    this.ffmpegServer.updateProtocolSettings('dash', updatedSettings)
+  }
+  updateInputSettings(updatedSettings) {
+    this.ffmpegServer.updateStreamSettings(updatedSettings);
+    this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
+  }
+  updateOutputSettings(updatedSettings) {
+    this.outputServer.configureOutput(updatedSettings);
+  }
+  updateMediaDir(...args) {
+    const mediaPath = path.join(...args)
+    this.ffmpegServer.setMediaDirectory(mediaPath);
+    this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
+
+  }
+  
   listen() {
-    this.rtmpServer.run();
+    this.rtmpGateway.listen();
     //this.ffmpegServer.listen();
-    this.expressServer.listen();
+    this.outputServer.listen();
   }
   close() {
     this.ffmpegServer.close();
-    this.expressServer.close();
+    this.outputServer.close();
   }
 }
 

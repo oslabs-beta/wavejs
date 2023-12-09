@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const { error, info } = require('./logger');
 
 class FileController {
-  constructor(streamId, streamKey, mediaRoot = '../videoFiles') {
+  constructor(streamId, streamKey, mediaRoot = path.join(__dirname, '../videoFiles')) {
     this._mediaRoot = mediaRoot;
     this.streamKey = streamKey;
     this._streamId;
@@ -29,7 +29,6 @@ class FileController {
   /* HLS Methods */
   buildHLSDirPath() {
     return path.join(
-      __dirname,
       this._mediaRoot,
       this.streamKey,
       this._streamId,
@@ -61,7 +60,6 @@ class FileController {
   /* MPD Methods */
   buildMPDDirPath() {
     return path.join(
-      __dirname,
       this._mediaRoot,
       this.streamKey,
       this._streamId,

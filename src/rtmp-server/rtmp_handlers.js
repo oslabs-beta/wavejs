@@ -270,7 +270,7 @@ const rtmpPacketParse = (config, state) => {
   rtmpChunkMessageHeaderRead(config, state);
   // if parserpacket type is greater than the aggregate type, the packet is broken and process should terminate
   if (state.parserPacket.header.type > config.type.metadata) {
-    console.log('rtmp packet parse error.', state.parserPacket);
+    Logger.error('rtmp packet parse error.', state.parserPacket);
     stop(config, state, streamStorage);
   }
 };
@@ -393,7 +393,7 @@ const rtmpAudioHandler = (config, state, streamStorage) => {
 
   if (sound_format != 10 && sound_format != 13) {
     //logging goes here
-    Logger.info(
+    Logger.debug(
       `[rtmp publish] audio received. id=${state.id} streamPath=${state.streams.publish.path} sound_format=${sound_format} sound_type=${sound_type} sound_size=${sound_size} sound_rate=${sound_rate} codec_name=${state.audio.codecName} ${state.audio.sampleRate} ${state.audio.channels}ch`
     );
     streamStorage.events.emit('audio', {
@@ -429,7 +429,7 @@ const rtmpAudioHandler = (config, state, streamStorage) => {
       state.audio.channels = payload[11];
     }
     //logging goes here
-    Logger.info(
+    Logger.debug(
       `[rtmp publish] audio received. id=${state.id} streamPath=${state.streams.publish.path} sound_format=${sound_format} sound_type=${sound_type} sound_size=${sound_size} sound_rate=${sound_rate} codec_name=${state.audio.codecName} ${state.audio.sampleRate} ${state.audio.channels}ch`
     );
     streamStorage.events.emit('audio', {
@@ -534,7 +534,7 @@ const rtmpVideoHandler = (config, state, streamStorage) => {
     state.video.codec = codec_id;
     state.video.codecName = config.video.codecName[codec_id];
     //logging goes here
-    Logger.info(
+    Logger.debug(
       `[rtmp publish] Handle video. id=${state.id} streamPath=${state.streams.publish.path} frame_type=${frame_type} codec_id=${codec_id} codec_name=${state.video.codecName} ${state.video.width}x${state.video.height}`
     );
     streamStorage.events.emit('video', {
@@ -725,7 +725,7 @@ const onPublish = (config, state, streamStorage, invokeMessage) => {
   if (streamStorage.publishers.has(state.streams.publish.path)) {
     reject(config, state, streamStorage);
     //logger goes here
-    Logger.info(
+    Logger.debug(
       `[rtmp publish] Already has a stream. id=${state.id} streamPath=${state.streams.publish.path} streamId=${state.streams.publish.id}`
     );
 
@@ -807,7 +807,7 @@ const onCloseStream = (config, state, streamStorage) => {
 };
 
 const onDeleteStream = (config, state, streamStorage, invokeMessage) => {
-  Logger.debug(`[on delete] ${JSON.stringify(invokeMessage)}`);
+  Logger.debug(`[rtmp delete] ${JSON.stringify(invokeMessage)}`);
   if (invokeMessage.streamId == state.streams.publish.id) {
     if (state.status.isPublishing) {
       //logging goes here
@@ -861,7 +861,7 @@ const stop = (config, state, streamStorage) => {
       state.pingInterval = null;
     }
 
-    Logger.info(`[rtmp disconnect] id=${state.id}`);
+    Logger.debug(`[rtmp disconnect] id=${state.id}`);
     streamStorage.events.emit('disconnect', { id: state.id });
     state.connect.cmdObj.bytesWritten = state.socket.bytesWritten;
     state.connect.cmdObj.bytesRead = state.socket.bytesRead;
@@ -873,7 +873,7 @@ const stop = (config, state, streamStorage) => {
 
 const reject = (config, state, streamStorage) => {
   //logger goes here
-  Logger.info(`[rtmp reject] id=${state.id}`);
+  Logger.debug(`[rtmp reject] id=${state.id}`);
   stop(config, state, streamStorage);
 };
 

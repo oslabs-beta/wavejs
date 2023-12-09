@@ -1,5 +1,4 @@
 const FileController = require('./FileController');
-const { PassThrough } = require('node:stream');
 const { EventEmitter } = require('node:events');
 
 const streamStorage = {
@@ -19,9 +18,9 @@ const streamStorage = {
   events: new EventEmitter(),
 
   /* output Stream Methods */
-  initOutputStream(streamId, streamKey) {
+  initOutputStream(streamId, streamKey, mediaRoot) {
     this.outputStreams.set(streamId, {
-      _fileController: new FileController(streamId, streamKey),
+      _fileController: new FileController(streamId, streamKey, mediaRoot),
       streams: {
         hls: {
           filePath: null,
@@ -78,7 +77,7 @@ const streamStorage = {
       );
     const state = this.outputStreams.get(streamId);
     if (state === undefined)
-      throw new Error("StreamID hasnt't been created yet");
+      throw new Error("StreamID hasn't been created yet");
     switch (protocol) {
       case 'dash': {
         return state.streams.dash.filePath;
