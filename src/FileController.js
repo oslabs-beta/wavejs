@@ -1,5 +1,6 @@
 const path = require('node:path');
 const fs = require('node:fs/promises');
+const fsSync = require('node:fs')
 const crypto = require('node:crypto');
 const { error, info } = require('./logger');
 
@@ -26,18 +27,36 @@ class FileController {
     info(`Your stream id is ${streamId}.`);
     return streamId;
   }
-  /* HLS Methods */
-  buildHLSDirPath() {
+  async collectStreamsInRoot() {
+    const rootDir = this.buildRootDirPath();
+    let streamIds =  await fs.readdir(rootDir);
+    streamIds = streamIds.filter((id) => {
+      let path = path.join(rootDir, id);
+      let hlsPath = path.join(rootDir, id, 'hls', 'manifest.m3u8');
+      let mpdPath = path.join(rootDir, id, 'mpd', 'manifest.mpd');
+      return (fsSync.existsSync(hlsPath) || fsSync.existsSync(mpdPath)) ? 
+      true : false;
+    });
+    return streamIds;
+  }
+  buildRootDirPath() {
     return path.join(
       this._mediaRoot,
       this.streamKey,
       this._streamId,
+    );
+  }
+  /* HLS Methods */
+  buildHLSDirPath() {
+    return path.join(
+      this.buildRootDirPath(),
       'hls'
     );
   }
   buildHLSPlaylistPath() {
     return path.join(this.buildHLSDirPath(), 'manifest.m3u8');
   }
+  
   async buildHLSDir() {
     const path = this.buildHLSDirPath();
     try {
@@ -60,9 +79,7 @@ class FileController {
   /* MPD Methods */
   buildMPDDirPath() {
     return path.join(
-      this._mediaRoot,
-      this.streamKey,
-      this._streamId,
+      this.buildRootDirPath(),
       'mpd'
     );
   }

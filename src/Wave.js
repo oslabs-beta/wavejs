@@ -53,6 +53,12 @@ class WaveJS {
     this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
 
   }
+  on(event, callback) {
+    this.session.events.on(event, callback);
+  }
+  once(event, callback) {
+    this.session.events.once(event,callback);
+  }
   
   listen() {
     this.rtmpGateway.listen();

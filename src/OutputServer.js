@@ -70,13 +70,27 @@ class OutputServer {
       outputMiddleware.getParams, 
       [loggerIdent]
       );
-    const getStream = utils.partialMod(
-      outputMiddleware.getStream, 
+    const getLiveStream = utils.partialMod(
+      outputMiddleware.getLiveStream, 
       [loggerIdent, this.session]
       );
-    this.app.get(`/${this.config.endpoint}/:streamKey/:extension`,
+    const getPlaybackStream = utils.partialMod(
+      outputMiddleware.getPlaybackStream,
+      [loggerIdent, this.session]
+    );
+    // live
+    this.app.get(`/${this.config.endpoint}/live/:streamKey/:extension`,
       getParams,
-      getStream,
+      getLiveStream,
+      (req, res) => {
+        res.status(200).set('Content-Type', res.locals.contentType);
+        fs.createReadStream(res.locals.videoPath).pipe(res);
+      }
+    );
+    //playback
+    this.app.get(`/${this.config.endpoint}/playback/:streamKey/:streamId/:extension`,
+      getParams,
+      getPlaybackStream,
       (req, res) => {
         res.status(200).set('Content-Type', res.locals.contentType);
         fs.createReadStream(res.locals.videoPath).pipe(res);

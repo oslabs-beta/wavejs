@@ -6,6 +6,7 @@ const streamStorage = {
   supportedOutputFormats: ['dash', 'hls'],
   publishers: new Map(), // /LIVE/MY_COOL_STREAM, 3908f0_LIVE
   // Track active live streams (each streamKey should only have 1 active live stream at a time)
+  playbackLiveStreams: new Map(),
   activeLiveStreams: new Map(),
   ffmpegPorts: new Map(),
   /* FfmpegPort Methods */
@@ -18,9 +19,10 @@ const streamStorage = {
   events: new EventEmitter(),
 
   /* output Stream Methods */
-  initOutputStream(streamId, streamKey, mediaRoot) {
+  async initOutputStream(streamId, streamKey, mediaRoot) {
+    const fileController = new FileController(streamId, streamKey, mediaRoot)
     this.outputStreams.set(streamId, {
-      _fileController: new FileController(streamId, streamKey, mediaRoot),
+      _fileController: fileController,
       streams: {
         hls: {
           filePath: null,
@@ -32,7 +34,32 @@ const streamStorage = {
         },
       },
     });
+    //collect outputStreams from mediaRoot, add to output streams
+    const streams = await fileController.collectStreamsInRoot();
+    streams.forEach(id => {
+      this.outputStreams.set(id, {
+        _fileController: new FileController(id, streamKey, mediaRoot),
+        streams: {
+          hls: {
+            filePath: null,
+            active: false,
+          },
+          dash: {
+            filePath: null,
+            active: false,
+          },
+        },
+      })
+    })
     this.activeLiveStreams.set(streamKey, streamId);
+    let userLiveStreams = this.playbackLiveStreams.get(streamKey)
+    if (userLiveStreams) {
+      this.playbackLiveStreams.set(streamKey, 
+        new Set([...userLiveStreams,...streams, streamId]));
+    } else {
+      this.playbackLiveStreams.set(streamKey, 
+        new Set([...streams, streamId]));
+    }
   },
   addOutputStream(streamId, protocol, active = true) {
     // Main error checking on protocol, active
@@ -77,7 +104,7 @@ const streamStorage = {
       );
     const state = this.outputStreams.get(streamId);
     if (state === undefined)
-      throw new Error("StreamID hasn't been created yet");
+      throw new Error(`StreamID of ${streamId} hasn't been created yet`);
     switch (protocol) {
       case 'dash': {
         return state.streams.dash.filePath;
