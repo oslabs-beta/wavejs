@@ -1,11 +1,14 @@
 const FileController = require('./FileController');
 const { EventEmitter } = require('node:events');
+const path = require('path')
+const fs = require('node:fs')
 
 const streamStorage = {
   outputStreams: new Map(),
   supportedOutputFormats: ['dash', 'hls'],
   publishers: new Map(), // /LIVE/MY_COOL_STREAM, 3908f0_LIVE
   // Track active live streams (each streamKey should only have 1 active live stream at a time)
+  playbackLiveStreams: new Map(),
   activeLiveStreams: new Map(),
   ffmpegPorts: new Map(),
   /* FfmpegPort Methods */
@@ -19,8 +22,9 @@ const streamStorage = {
 
   /* output Stream Methods */
   initOutputStream(streamId, streamKey, mediaRoot) {
+    const fileController = new FileController(streamId, streamKey, mediaRoot)
     this.outputStreams.set(streamId, {
-      _fileController: new FileController(streamId, streamKey, mediaRoot),
+      _fileController: fileController,
       streams: {
         hls: {
           filePath: null,
@@ -33,6 +37,71 @@ const streamStorage = {
       },
     });
     this.activeLiveStreams.set(streamKey, streamId);
+    //collect outputStreams from mediaRoot, add to output streams
+    // const streams = await fileController.collectStreamsInRoot();
+    // streams.forEach(id => {
+    //   this.outputStreams.set(id, {
+    //     _fileController: new FileController(id, streamKey, mediaRoot),
+    //     streams: {
+    //       hls: {
+    //         filePath: null,
+    //         active: false,
+    //       },
+    //       dash: {
+    //         filePath: null,
+    //         active: false,
+    //       },
+    //     },
+    //   })
+    // })
+    
+    // let userLiveStreams = this.playbackLiveStreams.get(streamKey)
+    // if (userLiveStreams) {
+    //   this.playbackLiveStreams.set(streamKey, 
+    //     new Set([...userLiveStreams,...streams, streamId]));
+    // } else {
+    //   this.playbackLiveStreams.set(streamKey, 
+    //     new Set([...streams, streamId]));
+    // }
+  },
+  async collectPlaybackStreams(streamId, streamKey, mediaRoot) {
+    const fileController = new FileController(streamId, streamKey, mediaRoot)
+ //collect outputStreams from mediaRoot, add to output streams
+    const streams = await fileController.collectStreamsInRoot();
+    streams.forEach(id => {
+      //initialize output stream
+      this.outputStreams.set(id, {
+        _fileController: new FileController(id, streamKey, mediaRoot),
+        streams: {
+          hls: {
+            filePath: null,
+            active: false,
+          },
+          dash: {
+            filePath: null,
+            active: false,
+          },
+        },
+      });
+      //add them
+      const userPath = fileController.buildRootUserPath();
+      const hlsPath = path.join(userPath, id, 'hls', 'manifest.m3u8')
+      const mpdPath = path.join(userPath, id, 'hls', 'manifest.mpd')
+      if (fs.existsSync(hlsPath)) {
+        this.addOutputStream(id, 'hls', false);
+      }
+      if (fs.existsSync(mpdPath)) {
+        this.addOutputStream(id, 'mpd', false);
+      }
+    })
+    let userLiveStreams = this.playbackLiveStreams.get(streamKey)
+    if (userLiveStreams) {
+      this.playbackLiveStreams.set(streamKey, 
+        new Set([...userLiveStreams,...streams, streamId]));
+    } else {
+      this.playbackLiveStreams.set(streamKey, 
+        new Set([...streams, streamId]));
+    }
   },
   addOutputStream(streamId, protocol, active = true) {
     // Main error checking on protocol, active
@@ -77,7 +146,7 @@ const streamStorage = {
       );
     const state = this.outputStreams.get(streamId);
     if (state === undefined)
-      throw new Error("StreamID hasn't been created yet");
+      throw new Error(`StreamID of ${streamId} hasn't been created yet`);
     switch (protocol) {
       case 'dash': {
         return state.streams.dash.filePath;

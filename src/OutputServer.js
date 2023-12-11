@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('node:http');
 const fs = require('node:fs');
 const cors = require('cors');
+const path = require('node:path');
 
 const utils = require('./utils')
 const Logger = require('./logger');
@@ -15,6 +16,7 @@ class OutputServer {
     this.config = {
       port: 3000,
       endpoint: 'wavejs',
+      mediaRoot: path.join(__dirname, '../videoFiles')
     };
     this.app = express();
     this.session = session;
@@ -70,13 +72,32 @@ class OutputServer {
       outputMiddleware.getParams, 
       [loggerIdent]
       );
-    const getStream = utils.partialMod(
-      outputMiddleware.getStream, 
+    const getLiveStream = utils.partialMod(
+      outputMiddleware.getLiveStream, 
       [loggerIdent, this.session]
       );
-    this.app.get(`/${this.config.endpoint}/:streamKey/:extension`,
+    const getPlaybackStream = utils.partialMod(
+      outputMiddleware.getPlaybackStream,
+      [loggerIdent, this.session]
+    );
+    const populatePlaybackStreams = utils.partialMod(
+      outputMiddleware.populatePlaybackStreams,
+      [loggerIdent, this.session, this.config.mediaRoot]
+    );
+    // live
+    this.app.get(`/${this.config.endpoint}/live/:streamKey/:extension`,
       getParams,
-      getStream,
+      getLiveStream,
+      (req, res) => {
+        res.status(200).set('Content-Type', res.locals.contentType);
+        fs.createReadStream(res.locals.videoPath).pipe(res);
+      }
+    );
+    //playback
+    this.app.get(`/${this.config.endpoint}/playback/:streamKey/:streamId/:extension`,
+      getParams,
+      populatePlaybackStreams,
+      getPlaybackStream,
       (req, res) => {
         res.status(200).set('Content-Type', res.locals.contentType);
         fs.createReadStream(res.locals.videoPath).pipe(res);

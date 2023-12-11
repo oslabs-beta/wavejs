@@ -1,6 +1,7 @@
 const Logger = require('./logger');
 const fs = require('node:fs');
 
+
 const contentTypes = {
   '.flv': 'video/x-flv',
   '.mp4': 'video/mp4',
@@ -25,6 +26,7 @@ const outputMiddleware = {
       const streamKey = req.params.streamKey;
       const fullExtension = req.params.extension;
       const ext = fullExtension.split('.')[1];
+      const streamId = req.params.streamId;
       if (endpoint && streamKey && fullExtension) {
         Logger.debug(
           `${loggerIdent} endpoint: ${endpoint}/${streamKey}/${fullExtension}`
@@ -34,7 +36,8 @@ const outputMiddleware = {
             endpoint,
             streamKey,
             fullExtension,
-            ext
+            ext,
+            streamId
           }
           return next();
       } else {
@@ -55,7 +58,7 @@ const outputMiddleware = {
     }
   },
 
-  getStream(loggerIdent, session, req, res, next) {
+  getLiveStream(loggerIdent, session, req, res, next) {
     const streamId = session.activeLiveStreams.get(res.locals.streamKey);
     let videoPath, streamPath, contentType;
     if (Object.keys(extProtocol).includes(res.locals.ext)) {
@@ -81,7 +84,64 @@ const outputMiddleware = {
 
       } else {
         return next({
-          log:`outputMiddleware.getStream: stream at ${req.path} isn't ready`,
+          log:`outputMiddleware.getStream: stream at ${req.path} isn't available`,
+          code: 404,
+          message: {err: 'Not found'}
+        }); 
+      }
+    } else {
+      return next({
+        log:`outputMiddleware.getStream: provided 'ext' of ${res.locals.ext} not supported`,
+        code: 400,
+        message: {err: 'Bad request'}
+      })
+    }
+  },
+  async populatePlaybackStreams(loggerIdent, session, mediaRoot, req, res, next) {
+    try {
+      await session.collectPlaybackStreams(
+        res.locals.streamId, 
+        res.locals.streamKey, 
+        mediaRoot
+        );
+        Logger.debug(`${loggerIdent} outputMiddleware.populatePlaybackStreams: complete`)
+        Logger.debug(`${loggerIdent} outputMiddleware.populatePlaybackStreams:`, session)
+        return next();
+    } catch(err) {
+      Logger.error(`${loggerIdent} stack:`, err.stack);
+      return next({
+        log: `outputMiddleware.populatePlaybackStreams: ${err.message}`,
+        code: 500,
+        message: { err: err.message }
+      });
+    }
+  },
+  getPlaybackStream(loggerIdent, session, req, res, next) {
+    let videoPath, streamPath, contentType;
+    if (Object.keys(extProtocol).includes(res.locals.ext)) {
+      try {
+        streamPath = session.getOutputStreamPath(
+          res.locals.streamId,
+          extProtocol[res.locals.ext]
+        );
+        contentType = contentTypes[res.locals.ext];
+        videoPath = `${streamPath}/${res.locals.fullExtension}`;
+      } catch (err) {
+        return next({
+          log: `outputMiddleware.getStream: ${err.message}`,
+          code: 500,
+          message: { err: err.message }
+        });
+      }
+      Logger.debug(`${loggerIdent} videoPath: ${videoPath}`);
+      if (fs.existsSync(videoPath)) {
+        res.locals.contentType = contentType;
+        res.locals.videoPath = videoPath;
+        return next();
+
+      } else {
+        return next({
+          log:`outputMiddleware.getStream: stream at ${req.path} isn't available`,
           code: 404,
           message: {err: 'Not found'}
         }); 
@@ -94,8 +154,6 @@ const outputMiddleware = {
       })
     }
   }
-
-
 };
 
 //outputMiddleware.test();
