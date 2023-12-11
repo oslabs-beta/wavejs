@@ -30,7 +30,6 @@ class FileController {
   async collectStreamsInRoot() {
     const rootDir = this.buildRootUserPath();
     let streamIds =  await fs.readdir(rootDir);
-    console.log('streamIds', streamIds)
     streamIds = streamIds.filter((id) => {
       let hlsPath = path.join(rootDir, id, 'hls', 'manifest.m3u8');
       let mpdPath = path.join(rootDir, id, 'mpd', 'manifest.mpd');
@@ -40,7 +39,6 @@ class FileController {
     return streamIds;
   }
   buildRootUserPath() {
-    info('[onetime]', 'mediaRoot', this._mediaRoot, 'streamKey', this.streamKey, 'streamId', this._streamId);
     return path.join(
       this._mediaRoot,
       this.streamKey

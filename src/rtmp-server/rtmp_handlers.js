@@ -808,7 +808,6 @@ const onCloseStream = (config, state, streamStorage) => {
 
 const onDeleteStream = (config, state, streamStorage, invokeMessage) => {
   Logger.debug(`[rtmp delete] ${JSON.stringify(invokeMessage)}`);
-  //Logger.debug(`[onetime] streamStorage pre delete`, streamStorage)
   if (invokeMessage.streamId == state.streams.publish.id) {
     if (state.status.isPublishing) {
       //logging goes here
@@ -823,7 +822,7 @@ const onDeleteStream = (config, state, streamStorage, invokeMessage) => {
         stream_path: state.streams.publish.path,
         stream_id: state.streams.publish.id,
       });
-      //Logger.debug(`[onetime] streamStorage post delete`, streamStorage)
+
       if (state.status.isStarting) {
         rtmpActions.sendStatusMessage(
           config,

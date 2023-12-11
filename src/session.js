@@ -68,7 +68,6 @@ const streamStorage = {
     const fileController = new FileController(streamId, streamKey, mediaRoot)
  //collect outputStreams from mediaRoot, add to output streams
     const streams = await fileController.collectStreamsInRoot();
-    console.log('onetime >', streams)
     streams.forEach(id => {
       //initialize output stream
       this.outputStreams.set(id, {

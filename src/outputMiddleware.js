@@ -67,7 +67,6 @@ const outputMiddleware = {
           streamId,
           extProtocol[res.locals.ext]
         );
-        Logger.debug(`[onetime] getStream - streamPath ${streamPath}`)
         contentType = contentTypes[res.locals.ext];
         videoPath = `${streamPath}/${res.locals.fullExtension}`;
       } catch (err) {
@@ -100,7 +99,6 @@ const outputMiddleware = {
   },
   async populatePlaybackStreams(loggerIdent, session, mediaRoot, req, res, next) {
     try {
-      Logger.debug(`[onetime] populatePlayback, streamId`, res.locals.streamId, 'streamKey', res.locals.streamkey)
       await session.collectPlaybackStreams(
         res.locals.streamId, 
         res.locals.streamKey, 
@@ -122,13 +120,10 @@ const outputMiddleware = {
     let videoPath, streamPath, contentType;
     if (Object.keys(extProtocol).includes(res.locals.ext)) {
       try {
-        console.log('[onetime] playback params: streamId', res.locals.streamId, 'protocol', extProtocol[res.locals.ext])
-        console.log(session.outputStreams)
         streamPath = session.getOutputStreamPath(
           res.locals.streamId,
           extProtocol[res.locals.ext]
         );
-        Logger.debug(`[onetime] getStream - streamPath ${streamPath}`)
         contentType = contentTypes[res.locals.ext];
         videoPath = `${streamPath}/${res.locals.fullExtension}`;
       } catch (err) {
