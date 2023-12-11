@@ -31,7 +31,6 @@ class FileController {
     const rootDir = this.buildRootDirPath();
     let streamIds =  await fs.readdir(rootDir);
     streamIds = streamIds.filter((id) => {
-      let path = path.join(rootDir, id);
       let hlsPath = path.join(rootDir, id, 'hls', 'manifest.m3u8');
       let mpdPath = path.join(rootDir, id, 'mpd', 'manifest.mpd');
       return (fsSync.existsSync(hlsPath) || fsSync.existsSync(mpdPath)) ? 
@@ -40,6 +39,7 @@ class FileController {
     return streamIds;
   }
   buildRootDirPath() {
+    info('[onetime]', 'mediaRoot', this._mediaRoot, 'streamKey', this.streamKey, 'streamId', this._streamId);
     return path.join(
       this._mediaRoot,
       this.streamKey,

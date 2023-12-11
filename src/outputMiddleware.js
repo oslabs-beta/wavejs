@@ -1,6 +1,7 @@
 const Logger = require('./logger');
 const fs = require('node:fs');
 
+
 const contentTypes = {
   '.flv': 'video/x-flv',
   '.mp4': 'video/mp4',
@@ -59,8 +60,6 @@ const outputMiddleware = {
 
   getLiveStream(loggerIdent, session, req, res, next) {
     const streamId = session.activeLiveStreams.get(res.locals.streamKey);
-    Logger.debug(`[onetime] session`, session)
-    Logger.debug(`[onetime] getStream - streamId ${streamId}`)
     let videoPath, streamPath, contentType;
     if (Object.keys(extProtocol).includes(res.locals.ext)) {
       try {
@@ -97,6 +96,26 @@ const outputMiddleware = {
         code: 400,
         message: {err: 'Bad request'}
       })
+    }
+  },
+  async populatePlaybackStreams(loggerIdent, session, mediaRoot, req, res, next) {
+    try {
+      Logger.debug(`[onetime] populatePlayback, streamId`, res.locals.streamId, 'streamKey', res.locals.streamkey)
+      await session.collectPlaybackStreams(
+        res.locals.streamId, 
+        res.locals.streamKey, 
+        mediaRoot
+        );
+        Logger.debug(`${loggerIdent} outputMiddleware.populatePlaybackStreams: complete`)
+        Logger.debug(`${loggerIdent} outputMiddleware.populatePlaybackStreams:`, session)
+        return next();
+    } catch(err) {
+      Logger.error(`${loggerIdent} stack:`, err.stack);
+      return next({
+        log: `outputMiddleware.populatePlaybackStreams: ${err.message}`,
+        code: 500,
+        message: { err: err.message }
+      });
     }
   },
   getPlaybackStream(loggerIdent, session, req, res, next) {

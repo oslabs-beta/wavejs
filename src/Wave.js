@@ -50,8 +50,8 @@ class WaveJS {
   updateMediaDir(...args) {
     const mediaPath = path.join(...args)
     this.ffmpegServer.setMediaDirectory(mediaPath);
+    this.outputServer.config.mediaRoot = mediaPath;
     this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
-
   }
   on(event, callback) {
     this.session.events.on(event, callback);

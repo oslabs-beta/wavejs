@@ -19,7 +19,7 @@ const streamStorage = {
   events: new EventEmitter(),
 
   /* output Stream Methods */
-  async initOutputStream(streamId, streamKey, mediaRoot) {
+  initOutputStream(streamId, streamKey, mediaRoot) {
     const fileController = new FileController(streamId, streamKey, mediaRoot)
     this.outputStreams.set(streamId, {
       _fileController: fileController,
@@ -34,7 +34,37 @@ const streamStorage = {
         },
       },
     });
+    this.activeLiveStreams.set(streamKey, streamId);
     //collect outputStreams from mediaRoot, add to output streams
+    // const streams = await fileController.collectStreamsInRoot();
+    // streams.forEach(id => {
+    //   this.outputStreams.set(id, {
+    //     _fileController: new FileController(id, streamKey, mediaRoot),
+    //     streams: {
+    //       hls: {
+    //         filePath: null,
+    //         active: false,
+    //       },
+    //       dash: {
+    //         filePath: null,
+    //         active: false,
+    //       },
+    //     },
+    //   })
+    // })
+    
+    // let userLiveStreams = this.playbackLiveStreams.get(streamKey)
+    // if (userLiveStreams) {
+    //   this.playbackLiveStreams.set(streamKey, 
+    //     new Set([...userLiveStreams,...streams, streamId]));
+    // } else {
+    //   this.playbackLiveStreams.set(streamKey, 
+    //     new Set([...streams, streamId]));
+    // }
+  },
+  async collectPlaybackStreams(streamId, streamKey, mediaRoot) {
+    const fileController = new FileController(streamId, streamKey, mediaRoot)
+ //collect outputStreams from mediaRoot, add to output streams
     const streams = await fileController.collectStreamsInRoot();
     streams.forEach(id => {
       this.outputStreams.set(id, {
