@@ -11,7 +11,7 @@ const globalConfig = {
 };
 const AVConfig = {
   videoCodec: 'libx264', // -vcodec
-  videoBitrate: 1200, //- b:v
+  videoBitrate: '1200k', //- b:v
   audioBitrate:  '256k', //-b:a
   audioCodec: 'aac', //-acodec
   audioChannels: 2,//-ac
