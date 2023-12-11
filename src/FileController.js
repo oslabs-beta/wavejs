@@ -28,8 +28,9 @@ class FileController {
     return streamId;
   }
   async collectStreamsInRoot() {
-    const rootDir = this.buildRootDirPath();
+    const rootDir = this.buildRootUserPath();
     let streamIds =  await fs.readdir(rootDir);
+    console.log('streamIds', streamIds)
     streamIds = streamIds.filter((id) => {
       let hlsPath = path.join(rootDir, id, 'hls', 'manifest.m3u8');
       let mpdPath = path.join(rootDir, id, 'mpd', 'manifest.mpd');
@@ -38,18 +39,18 @@ class FileController {
     });
     return streamIds;
   }
-  buildRootDirPath() {
+  buildRootUserPath() {
     info('[onetime]', 'mediaRoot', this._mediaRoot, 'streamKey', this.streamKey, 'streamId', this._streamId);
     return path.join(
       this._mediaRoot,
-      this.streamKey,
-      this._streamId,
+      this.streamKey
     );
   }
   /* HLS Methods */
   buildHLSDirPath() {
     return path.join(
-      this.buildRootDirPath(),
+      this.buildRootUserPath(),
+      this._streamId,
       'hls'
     );
   }
@@ -79,7 +80,8 @@ class FileController {
   /* MPD Methods */
   buildMPDDirPath() {
     return path.join(
-      this.buildRootDirPath(),
+      this.buildRootUserPath(),
+      this._streamId,
       'mpd'
     );
   }

@@ -122,6 +122,8 @@ const outputMiddleware = {
     let videoPath, streamPath, contentType;
     if (Object.keys(extProtocol).includes(res.locals.ext)) {
       try {
+        console.log('[onetime] playback params: streamId', res.locals.streamId, 'protocol', extProtocol[res.locals.ext])
+        console.log(session.outputStreams)
         streamPath = session.getOutputStreamPath(
           res.locals.streamId,
           extProtocol[res.locals.ext]

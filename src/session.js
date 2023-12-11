@@ -1,5 +1,7 @@
 const FileController = require('./FileController');
 const { EventEmitter } = require('node:events');
+const path = require('path')
+const fs = require('node:fs')
 
 const streamStorage = {
   outputStreams: new Map(),
@@ -66,7 +68,9 @@ const streamStorage = {
     const fileController = new FileController(streamId, streamKey, mediaRoot)
  //collect outputStreams from mediaRoot, add to output streams
     const streams = await fileController.collectStreamsInRoot();
+    console.log('onetime >', streams)
     streams.forEach(id => {
+      //initialize output stream
       this.outputStreams.set(id, {
         _fileController: new FileController(id, streamKey, mediaRoot),
         streams: {
@@ -79,9 +83,18 @@ const streamStorage = {
             active: false,
           },
         },
-      })
+      });
+      //add them
+      const userPath = fileController.buildRootUserPath();
+      const hlsPath = path.join(userPath, id, 'hls', 'manifest.m3u8')
+      const mpdPath = path.join(userPath, id, 'hls', 'manifest.mpd')
+      if (fs.existsSync(hlsPath)) {
+        this.addOutputStream(id, 'hls', false);
+      }
+      if (fs.existsSync(mpdPath)) {
+        this.addOutputStream(id, 'mpd', false);
+      }
     })
-    this.activeLiveStreams.set(streamKey, streamId);
     let userLiveStreams = this.playbackLiveStreams.get(streamKey)
     if (userLiveStreams) {
       this.playbackLiveStreams.set(streamKey, 
