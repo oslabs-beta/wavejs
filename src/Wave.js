@@ -53,6 +53,7 @@ class WaveJS {
     this.outputServer.config.mediaRoot = mediaPath;
     this.rtmpGateway.setTransmuxServer(this.ffmpegServer);
   }
+  // audio, video, metadata, connect, publish, close, disconnect
   on(event, callback) {
     this.session.events.on(event, callback);
   }
