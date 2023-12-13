@@ -63,14 +63,11 @@
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "chalk": "^4",
-    "chokidar": "^3.5.3",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "fluent-ffmpeg": "^2.1.2",
-    "fluent-ffmpeg-multistream": "^1.0.0",
     "lodash": "^4.17.21",
-    "qs": "^6.11.2",
-    "socketio": "^1.0.0"
+    "qs": "^6.11.2"
   },
   "engines": {
     "node": ">=20.0.0",
