@@ -1,4 +1,4 @@
-<img src='assets/Banner.png'>
+![wave.js Banner](https://github.com/oslabs-beta/wavejs/blob/dev/assets/Banner.png?raw=true)
 
 # wave.js
 
@@ -26,15 +26,15 @@ Chunking live video into smaller segments expedites real-time encoding and deliv
 
 Users can configure file location to save video and audio streams locally or on the cloud, for on-demand playback after live streams have ended.
 
+### Detailed Logging to Monitor Progress and Performance
+
+Stay up-to-date on live stream progress and performance, with in-depth, detailed logging. View connected ports, current stream paths and processes, warnings, and error messages in real-time.
+
 ## Getting Started
 
 To get started, install the npm package:
 
 `npm i @wave.js/wave.js`
-
-## Requirements
-
-wave.js requires [Ffmpeg](https://ffmpeg.org/download.html).
 
 ## Contributors
 
