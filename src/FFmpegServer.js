@@ -43,6 +43,7 @@ class FFmpegServer {
     if (this.protocols.includes('dash')) {
       this.dashConfig = _.cloneDeep(config.dash);
     }
+    
   }
   updateAVSettings(updatedConfig) {
     try {
@@ -149,7 +150,7 @@ class FFmpegServer {
   }
   addMPD() {
     if (this.stream){
-      this.session.addOutputStream(this.streamConfig.streamId, 'hls');
+      this.session.addOutputStream(this.streamConfig.streamId, 'dash');
       let dashOutput = this.session.getOutputStreamPath(
         this.streamConfig.streamId, 'dash');
       let outputOptions = configUnmappedPipe(this.dashConfig);
@@ -285,8 +286,8 @@ class FFmpegServer {
     if (this.hlsConfig) {
       clone.hlsConfig = this.hlsConfig;
     }
-    if (this.mpdConfig) {
-      clone.mpdConfig = this.mpdConfig;
+    if (this.dashConfig) {
+      clone.dashConfig = this.dashConfig;
     }
     return clone;
   }
