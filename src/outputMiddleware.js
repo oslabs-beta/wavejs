@@ -25,7 +25,7 @@ const outputMiddleware = {
       const endpoint = req.path.slice(1).split('/', 1)[0]
       const streamKey = req.params.streamKey;
       const fullExtension = req.params.extension;
-      const ext = fullExtension.split('.')[1];
+      const ext = fullExtension? fullExtension.split('.')[1]: undefined;
       const streamId = req.params.streamId;
       if (endpoint && streamKey && fullExtension) {
         Logger.debug(
@@ -97,6 +97,7 @@ const outputMiddleware = {
       })
     }
   },
+
   async populatePlaybackStreams(loggerIdent, session, mediaRoot, req, res, next) {
     try {
       await session.collectPlaybackStreams(
@@ -116,6 +117,7 @@ const outputMiddleware = {
       });
     }
   },
+  
   getPlaybackStream(loggerIdent, session, req, res, next) {
     let videoPath, streamPath, contentType;
     if (Object.keys(extProtocol).includes(res.locals.ext)) {

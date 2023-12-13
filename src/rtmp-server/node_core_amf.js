@@ -1,7 +1,4 @@
-/**
- * Created by delian on 3/12/14.
- * This module provides encoding and decoding of the AMF0 and AMF3 format
- */
+
 const Logger = console;
 
 const amf3dRules = {

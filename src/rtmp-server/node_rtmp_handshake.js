@@ -1,8 +1,4 @@
-//
-//  Created by Mingliang Chen on 17/8/1.
-//  illuspas[a]gmail.com
-//  Copyright (c) 2018 Nodemedia. All rights reserved.
-//
+
 const Crypto = require('crypto');
 
 const MESSAGE_FORMAT_0 = 0;
