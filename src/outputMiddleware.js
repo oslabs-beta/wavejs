@@ -109,7 +109,6 @@ const outputMiddleware = {
         Logger.debug(`${loggerIdent} outputMiddleware.populatePlaybackStreams:`, session)
         return next();
     } catch(err) {
-      Logger.error(`${loggerIdent} stack:`, err.stack);
       return next({
         log: `outputMiddleware.populatePlaybackStreams: ${err.message}`,
         code: 500,

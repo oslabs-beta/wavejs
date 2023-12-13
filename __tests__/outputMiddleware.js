@@ -120,6 +120,9 @@ describe('@ outputMiddleware tests', () => {
           ext: 'm3u8',
           fullExtension: 'manifest.m3u8',
       }};
+      mockRequest = {
+        path: undefined,
+      };
       loggerIdent = '[test ident]'
     });
   
@@ -142,6 +145,7 @@ describe('@ outputMiddleware tests', () => {
       fs.existsSync.mockImplementation(videoPath => true);
       outputMiddleware.getLiveStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
       expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledWith();
     });
 
     test('when hls chunk request wellformed, contentType and videoPath added to locals', () => {
@@ -162,6 +166,7 @@ describe('@ outputMiddleware tests', () => {
       mockResponse.locals.fullExtension = 'manifest1.ts';
       outputMiddleware.getLiveStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
       expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledWith();
     });
     //MPD
     test('when mpd manifest request wellformed, contentType and videoPath added to locals', () => {
@@ -182,6 +187,7 @@ describe('@ outputMiddleware tests', () => {
       mockResponse.locals.fullExtension = 'manifest.mpd';
       outputMiddleware.getLiveStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
       expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledWith();
     });
     test('when mpd chunk request wellformed, contentType and videoPath added to locals', () => {
       fs.existsSync.mockImplementation(videoPath => true);
@@ -226,9 +232,11 @@ describe('@ outputMiddleware tests', () => {
       });
     });
   });
+
   describe('# populatePlaybackStreams', () => {
     let mediaRoot;
     beforeEach(()=>{
+      
       session = {
         collectPlaybackStreams: jest.fn(),
       };
@@ -248,7 +256,7 @@ describe('@ outputMiddleware tests', () => {
 
     test('should call session collectPlaybackStreams methods', async () => {
       session.collectPlaybackStreams.mockImplementation((...args) => {
-        return P
+        return Promise.resolve();
       })  
       await outputMiddleware.populatePlaybackStreams(loggerIdent, session, mediaRoot, mockRequest, mockResponse, mockNext);
       expect(session.collectPlaybackStreams).toHaveBeenCalledTimes(1);
@@ -256,18 +264,159 @@ describe('@ outputMiddleware tests', () => {
     });
 
     test('should call next once if no errors', async () => {
+      session.collectPlaybackStreams.mockImplementation((...args) => {
+        return Promise.resolve();
+      })  
       await outputMiddleware.populatePlaybackStreams(loggerIdent, session, mediaRoot, mockRequest, mockResponse, mockNext);
       expect(mockNext).toHaveBeenCalledTimes(1);
       expect(mockNext).toHaveBeenCalledWith();
     });
 
-    test('if session.collectPlaybackStreams throws an error, it calls the specific error', () => {
-
+    test('if session.collectPlaybackStreams throws an error, it calls the specific error', async () => {
+      session.collectPlaybackStreams.mockImplementation((...args) => {
+        return Promise.reject(new Error('test error'));
+      })  ;
+      await outputMiddleware.populatePlaybackStreams(loggerIdent, session, mediaRoot, mockRequest, mockResponse, mockNext);
+      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledWith({
+        log: `outputMiddleware.populatePlaybackStreams: test error`,
+        code: 500,
+        message: { err: 'test error'}
+      });
     });
 
   });
-  describe('# getPlaybackStream', ()=>{
 
+  describe('# getPlaybackStream', ()=>{
+    beforeEach(()=>{
+      session = {
+        activeLiveStreams: {
+          get: jest.fn((key) => 'ULLLQ1ZM'/*streamId*/),
+        },
+        getOutputStreamPath: jest.fn((streamId, protocol) => '/testpath/videoFiles/TestUser/ULLLQ1ZM'/** streamPath */)
+      };
+      mockRequest = {
+        path: undefined,
+      };
+      mockResponse = {
+        locals:{
+          streamKey: 'TestUser',
+          ext: 'm3u8',
+          fullExtension: 'manifest.m3u8',
+          streamId: 'ULLLQ1ZM',
+      }};
+      loggerIdent = '[test ident]'
+    });
     
+    afterEach(()=>{
+      jest.clearAllMocks();
+    });
+    
+    // HLS
+    test('when hls manifest request wellformed, contentType and videoPath added to locals', () => {
+      fs.existsSync.mockImplementation(videoPath => true);
+      outputMiddleware.getPlaybackStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.locals).toEqual({
+        contentType: "application/x-mpegURL",
+        ext: "m3u8",
+        fullExtension: "manifest.m3u8",
+        streamId: "ULLLQ1ZM",
+        streamKey: "TestUser",
+        videoPath: "/testpath/videoFiles/TestUser/ULLLQ1ZM/manifest.m3u8"});
+    });
+    test('when hls manifest request wellformed, next called once', ()=>{
+      fs.existsSync.mockImplementation(videoPath => true);
+      outputMiddleware.getPlaybackStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
+      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledWith();
+    });
+
+    test('when hls chunk request wellformed, contentType and videoPath added to locals', () => {
+      fs.existsSync.mockImplementation(videoPath => true);
+      mockResponse.locals.ext = 'ts';
+      mockResponse.locals.fullExtension = 'manifest1.ts';
+      outputMiddleware.getPlaybackStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.locals).toEqual({
+        contentType: "application/x-mpegURL",
+        ext: "ts",
+        fullExtension: "manifest1.ts",
+        streamId: "ULLLQ1ZM",
+        streamKey: "TestUser",
+        videoPath: "/testpath/videoFiles/TestUser/ULLLQ1ZM/manifest1.ts"});
+    });
+    test('when hls chunk request wellformed, next called once', ()=>{
+      fs.existsSync.mockImplementation(videoPath => true);
+      mockResponse.locals.ext = 'ts';
+      mockResponse.locals.fullExtension = 'manifest1.ts';
+      outputMiddleware.getPlaybackStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
+      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledWith();
+    });
+    //MPD
+    test('when mpd manifest request wellformed, contentType and videoPath added to locals', () => {
+      fs.existsSync.mockImplementation(videoPath => true);
+      mockResponse.locals.ext = 'mpd'
+      mockResponse.locals.fullExtension = 'manifest.mpd';
+      outputMiddleware.getPlaybackStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.locals).toEqual({
+        contentType: "application/dash+xml",
+        ext: "mpd",
+        streamId: "ULLLQ1ZM",
+        fullExtension: "manifest.mpd",
+        streamKey: "TestUser",
+        videoPath: "/testpath/videoFiles/TestUser/ULLLQ1ZM/manifest.mpd"});
+    });
+    test('when mpd manifest request wellformed, next called once', ()=>{
+      fs.existsSync.mockImplementation(videoPath => true);
+      mockResponse.locals.ext = 'mpd'
+      mockResponse.locals.fullExtension = 'manifest.mpd';
+      outputMiddleware.getPlaybackStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
+      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledWith();
+    });
+    test('when mpd chunk request wellformed, contentType and videoPath added to locals', () => {
+      fs.existsSync.mockImplementation(videoPath => true);
+      mockResponse.locals.ext = 'm4s'
+      mockResponse.locals.fullExtension = 'chunk_1_00001.m4s';
+      outputMiddleware.getPlaybackStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
+      expect(mockResponse.locals).toEqual({
+        contentType: "application/dash+xml",
+        ext: "m4s",
+        fullExtension: "chunk_1_00001.m4s",
+        streamId: "ULLLQ1ZM",
+        streamKey: "TestUser",
+        videoPath: "/testpath/videoFiles/TestUser/ULLLQ1ZM/chunk_1_00001.m4s"});
+    });
+    test('when mpd chunk request wellformed, next called once', ()=>{
+      fs.existsSync.mockImplementation(videoPath => true);
+      mockResponse.locals.ext = 'm4s'
+      mockResponse.locals.fullExtension = 'manifest.m3u8';
+      outputMiddleware.getPlaybackStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
+      expect(mockNext).toHaveBeenCalledTimes(1);
+    });
+
+    test('if video doesn\'t exist, next called with error', ()=>{
+      fs.existsSync.mockImplementation(videoPath => false);
+      outputMiddleware.getPlaybackStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
+      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledWith({
+        code: 404,
+        log: "outputMiddleware.getStream: stream at undefined isn't available",
+        message: {err: "Not found"}
+      });
+    });
+    test('when provided ext isn\'t supported, next called with error', ()=>{
+      fs.existsSync.mockImplementation(videoPath => true);
+      mockResponse.locals.ext = 'junk'
+      mockResponse.locals.fullExtension = 'manifest.junk'
+      outputMiddleware.getPlaybackStream(loggerIdent, session, mockRequest, mockResponse, mockNext);
+      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledWith({
+        code: 400,
+        log: "outputMiddleware.getStream: provided 'ext' of junk not supported",
+        message:  {err: "Bad request"},
+      });
+    });
+
   });
 });
