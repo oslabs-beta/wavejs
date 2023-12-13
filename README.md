@@ -36,9 +36,33 @@ To get started, install the npm package:
 
 `npm i @wave.js/wave.js`
 
+Read the [documentation](https://github.com/oslabs-beta/wavejs/tree/dev/documentation) for full details on how to configure wave.js and get up-and-running.
+
 ## Contributors
 
 • [Evan Pearson](https://github.com/parsnbl)
 • [Stephanie Cummins](https://github.com/StephCummins)
 • [Pedro Montibello](https://github.com/PMontibello)
 • [Sean Kirkpatrick](https://github.com/kirkpatricksk)
+
+## Contributing
+
+Would you like to get involved? To contribute to wave.js:
+
+- Notify us of any issues on [GitHub](https://github.com/oslabs-beta/wavejs/issues)
+
+- Fork the project repo and make a contribution to the code
+
+  1. For the project repo
+  2. Create a feature branch
+  3. Commit your changes
+  4. Push to your branch
+  5. Open a new PR
+
+- Please show your support and star the wave.js repo if you found this project helpful
+
+Thank you for your support!
+
+## License
+
+wave.js is distributed under the [MIT License](https://github.com/oslabs-beta/wavejs/blob/dev/LICENSE)

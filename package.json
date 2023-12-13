@@ -12,6 +12,9 @@
   "bugs": {
     "url": "https://github.com/oslabs-beta/wavejs/issues"
   },
+  "website": {
+    "url": "https://wavejs.live/"
+  },
   "keywords": [
     "rtmp",
     "hls",
