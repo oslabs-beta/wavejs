@@ -28,20 +28,22 @@
 
 To get started using wave.js, install the npm package:
 
-<code>npm i @wave.js/wave.js</code>
-
+```bash
+npm i @wave.js/wave.js</code>
+```
 ## Setting Up wave.js Server
 
 wave.js is a Node.js-based server with functionality to configure and customize live streams. To set up a wave.js server:
 
 1.  Include the WaveJS module:
-
-    <code>const WaveJS = require(‘@wave.js/wave.js’)</code>
-
+```js
+const WaveJS = require(‘@wave.js/wave.js’);
+```
 2.  Create a new instance of a WaveJS server:
 
-    <code>const server = new WaveJS();</code>
-
+```js
+const server = new WaveJS();
+```
 ## Configuring wave.js Server
 
 wave.js features a range of functions to tailor live streams to any development environment. Once you've created a new instance of a wave.js server, you can use the following built-in functions to configure and control live streams. Included are options to start and stop your server, add event listeners, configure input and output settings, and update the media directory where streams are saved:
@@ -68,7 +70,7 @@ wave.js features a range of functions to tailor live streams to any development 
 
 Before you start streaming, configure your audio/video output settings to meet the needs of your project. The default configuration options are as follows:
 
-```
+```js
 const AVConfig = {
   videoCodec: 'libx264',
   videoBitrate: '1200k',
@@ -85,21 +87,25 @@ To customize your A/V output:
 
 1.  Create a new object with any updated settings. Note that all other options not included in the config object will retain their default settings:
 
-        const updatedSettings = {
-            videoBitrate: '1000K',
-            h264Preset: 'medium'
-        }
+```js
+const updatedSettings = {
+  videoBitrate: '1000K',
+  h264Preset: 'medium'
+}
+```
 
 2.  The updateAVSettings method accepts a single config object as its parameter. Invoke the updateAVSettings method and pass in the updated config object as an argument:
 
-    <code>server.updateAVSettings(updatedSettings)</code>
+ ```js
+server.updateAVSettings(updatedSettings);
+```
 
 #### updateOutputProtocol(...args)
 
 wave.js currently supports output for HLS and MPEG-DASH streaming protocols. Users can select to output live streams in HLS, MPEG-DASH, or both concurrently:
 
-- Output HLS: <code>server.updateOutputProtocol('hls')</code>
-- Output MPEG-DASH: <code>server.updateOutputProtocol('dash')</code>
+- Output HLS: <code>jsserver.updateOutputProtocol('hls');</code>
+- Output MPEG-DASH: <code>server.updateOutputProtocol('dash');</code>
 - Output HLS and MPEG-DASH: <code>server.updateOutputProtocol('hls', 'dash')</code>
 
 #### updateHLSOutput(updatedSettings)
@@ -147,12 +153,13 @@ The default HLS output settings for wave.js are:
 To configure your HLS output:
 
 1.  Create a new object with any updated settings. Note that all other options not included in the config object will retain their default settings:
-
-        const updatedSettings = {
-            hlsStartNumberSource: 'datetime',
-            hlsListSize: 0,
-            hlsPlaylistType: 'event'
-        }
+```js
+const updatedSettings = {
+  hlsStartNumberSource: 'datetime',
+  hlsListSize: 0,
+  hlsPlaylistType: 'event'
+};
+```
 
 2.  The updateHLSOutput method accepts a single config object as its parameter. Invoke the updateHLSOutput method and pass in the updated config object as an argument:
 
@@ -211,13 +218,14 @@ The default MPEG-DASH output settings for wave.js are:
 To configure your MPEG-DASH output:
 
 1.  Create a new object with any updated settings. Note that all other options not included in the config object will retain their default settings:
-
-        const updatedSettings = {
-            segDuration: 10,
-            deshSegmentType: 'mp4',
-            writePrft: true,
-            targetLatency: 10,
-        }
+```js
+const updatedSettings = {
+  segDuration: 10,
+  deshSegmentType: 'mp4',
+  writePrft: true,
+  targetLatency: 10,
+}
+```
 
 2.  The updateMPDOutput method accepts a single config object as its parameter. Invoke the updateMPDOutput method and pass in the updated config object as an argument:
 
@@ -259,10 +267,10 @@ Create custom event handlers for the previous events that are tailored to your w
 
 Code Example:
 
-```
+```js
 streamStorage.events.on('disconnect', () => {
-    writeSocket.destroy();
-    console.log(`${streamKey} streaming session ended.`)
+  writeSocket.destroy();
+  console.log(`${streamKey} streaming session ended.`)
 });
 ```
 
@@ -270,13 +278,17 @@ streamStorage.events.on('disconnect', () => {
 
 Once you've configured your wave.js server, you're ready to start streaming. To start wave.js, invoke the listen method. This boots up the output server (default port 3000) and the RTMP server (default port 1935).
 
-<code>server.listen()</code>
+```js
+server.listen();
+```
 
 #### close()
 
 To stop wave.js, invoke the close method:
 
-<code>server.close()</code>
+```js
+server.close()
+```
 
 ## Accessing Live Streams and Video Files
 
@@ -325,7 +337,7 @@ To create custom logs:
 
 Code Example:
 
-```
+```js
 const port = 8000;
 
 const app = express();
@@ -341,7 +353,7 @@ View the [wave.js demo site repository](https://github.com/oslabs-beta/wavejs-te
 
 View a code example of a project server that uses wave.js
 
-```
+```js
 const express = require('express');
 const path = require('path');
 
