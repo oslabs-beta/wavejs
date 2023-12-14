@@ -2,13 +2,27 @@
 
 ## Contents
 
-- [Getting Started](#getting-started)
-- [Setting Up wave.js Server](#setting-up-wavejs-server)
-- [Configuring wave.js Server](#configuring-wavejs-server)
-- [Accessing Live Streams and Video Files](#accessing-live-streams-and-video-files)
-- [Live Streaming with OBS Studio](#live-streaming-with-obs-studio)
-- [Using Custom Logs](#using-custom-logs)
-- [Code Example](#code-example)
+- [wave.js Documentation](#wavejs-documentation)
+  - [Contents](#contents)
+  - [Getting Started](#getting-started)
+  - [Setting Up wave.js Server](#setting-up-wavejs-server)
+  - [Configuring wave.js Server](#configuring-wavejs-server)
+    - [Configuration Options](#configuration-options)
+    - [Event Listeners](#event-listeners)
+    - [Start/Stop Server](#startstop-server)
+      - [updateAVSettings(updatedSettings)](#updateavsettingsupdatedsettings)
+      - [updateOutputProtocol(...args)](#updateoutputprotocolargs)
+      - [updateHLSOutput(updatedSettings)](#updatehlsoutputupdatedsettings)
+      - [updateMPDOutput(updatedSettings)](#updatempdoutputupdatedsettings)
+      - [updateOutputSettings(updatedSettings)](#updateoutputsettingsupdatedsettings)
+      - [updateMediaDir(...args)](#updatemediadirargs)
+      - [on(event, callback) and once(event, callback)](#onevent-callback-and-onceevent-callback)
+      - [listen()](#listen)
+      - [close()](#close)
+  - [Accessing Live Streams and Video Files](#accessing-live-streams-and-video-files)
+  - [Live Streaming with OBS Studio](#live-streaming-with-obs-studio)
+  - [Using Custom Logs](#using-custom-logs)
+  - [Code Example](#code-example)
 
 ## Getting Started
 
@@ -221,7 +235,7 @@ To update the server port or endpoint, invoke the updateOutputSettings method an
 
 #### updateMediaDir(...args)
 
-To set a custom directory name to store all streaming files, invoke the updateMediaDir() method and pass in the new directory name (string) as an argument.
+By default, wave.js stores video files in a 'videoFiles' directory in the current working directory. To set a custom directory name to store all streaming files, invoke the updateMediaDir() method and pass in the new directory name (string) as an argument.
 
 <code>server.updateMediaDir('mediaDirectory')</code>
 
@@ -266,7 +280,7 @@ To stop wave.js, invoke the close method:
 
 ## Accessing Live Streams and Video Files
 
-wave.js serves live streams and video files for on-demand playback. The default locations to access files are provided below. Ensure you replace ${streamKey} with the user stream key.
+wave.js serves live streams and video files for on-demand playback. The default locations to access files are provided below. Ensure you replace ${streamKey} with the user stream key and provide the ${streamId} produced during recording if using the playback endpoint.
 
 **Live Streams**
 
@@ -277,7 +291,7 @@ http://localhost:3000/wavejs/live/${streamKey}/manifest.m3u8
 **Video Files for Playback**
 
 ```
-http://localhost:3000/wavejs/playback/${streamKey}/manifest.m3u8
+http://localhost:3000/wavejs/playback/${streamKey}/${streamId}/manifest.m3u8
 ```
 
 View the [demo repo](https://github.com/oslabs-beta/wavejs-test-site) to see how streams are accessed and served by a video player in React.
