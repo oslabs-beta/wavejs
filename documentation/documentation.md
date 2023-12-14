@@ -235,7 +235,7 @@ To update the server port or endpoint, invoke the updateOutputSettings method an
 
 #### updateMediaDir(...args)
 
-By default, wave.js stores video files in a 'videoFiles' directory in it's project folder. To set a custom directory name to store all streaming files, invoke the updateMediaDir() method and pass in the new directory name (string) as an argument.
+By default, wave.js stores video files in a 'videoFiles' directory in the current working directory. To set a custom directory name to store all streaming files, invoke the updateMediaDir() method and pass in the new directory name (string) as an argument.
 
 <code>server.updateMediaDir('mediaDirectory')</code>
 
