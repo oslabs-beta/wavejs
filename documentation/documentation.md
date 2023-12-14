@@ -37,7 +37,7 @@ wave.js is a Node.js-based server with functionality to configure and customize 
 
 1.  Include the WaveJS module:
 ```js
-const WaveJS = require(‘@wave.js/wave.js’);
+const WaveJS = require("@wave.js/wave.js");
 ```
 2.  Create a new instance of a WaveJS server:
 
