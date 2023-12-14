@@ -1,8 +1,22 @@
+<div align="center">
+  
 ![wave.js Banner](https://github.com/oslabs-beta/wavejs/blob/dev/assets/Banner.png?raw=true)
+<br>
 
-# wave.js
+ ![GitHub License](https://img.shields.io/github/license/oslabs-beta/wavejs) 
+ ![npm (scoped)](https://img.shields.io/npm/v/%40wave.js/wave.js) 
+ ![npm](https://img.shields.io/npm/dt/%40wave.js/wave.js) 
+ ![GitHub Repo stars](https://img.shields.io/github/stars/oslabs-beta/wavejs) 
+ ![GitHub forks](https://img.shields.io/github/forks/oslabs-beta/wavejs)
+<br>
+<a href='https://wavejs.live'>🌊 Website</a>  |  <a href='./documentation/documentation.md'>📑 Documentation</a>  |  <a href='https://www.linkedin.com/company/wave-js/posts/?feedView=all'>💼 LinkedIn</a>
+
+
+ # wave.js
 
 wave.js is a scalable video live streaming framework, with multi-stream support for real-time RTMP ingest, encoding to HLS and MPEG-DASH, and low-latency live stream delivery. Targeted at helping dev teams deploy live streaming applications with greater ease and efficiency, wave.js is an open source server framework for Node.js that features customizable configuration options to tailor video and audio live streams to meet the needs of any professional dev environment.
+
+</div>
 
 ## Features
 
@@ -34,7 +48,9 @@ Stay up-to-date on live stream progress and performance, with in-depth, detailed
 
 To get started, install the npm package:
 
-`npm i @wave.js/wave.js`
+```bash
+npm i @wave.js/wave.js
+```
 
 Read the [documentation](https://github.com/oslabs-beta/wavejs/tree/dev/documentation) for full details on how to configure wave.js and get up-and-running.
 
