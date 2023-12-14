@@ -29,7 +29,7 @@
 To get started using wave.js, install the npm package:
 
 ```bash
-npm i @wave.js/wave.js</code>
+npm i @wave.js/wave.js
 ```
 ## Setting Up wave.js Server
 
