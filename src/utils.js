@@ -1,4 +1,3 @@
-const net = require('node:net');
 const utils = {};
 
 utils.objRepr = (obj, kVSep = ':', entrySep = ', ') => {
@@ -18,46 +17,36 @@ utils.objRepr = (obj, kVSep = ':', entrySep = ', ') => {
   return output;
 };
 
-utils.portCheck = (host, port, timeout = 400) => {
-  return new Promise((resolve, reject) => {
-    const socket = new net.Socket();
-    let status = null;
-    let error = null;
-    let connectionRefused = false;
-    socket.on('connect', () => {
-      console.log('portcheck: connect');
-      status = 'open';
-      socket.destroy();
-    });
-    socket.setTimeout(timeout);
-    socket.on('timeout', () => {
-      console.log('portcheck: timeout');
-      status = 'in-use';
-      socket.destroy();
-    });
-    socket.on('error', (err) => {
-      console.log('portcheck: error');
-      // if (err.code !== 'ECONNREFUSED') {
-      //   error = err
-      // } else {
-      //   connectionRefused = true
-      // }
-      error = err;
-      status = 'in-use';
-    });
-    socket.on('close', (err) => {
-      if (err && !connectionRefused) {
-        error = error || err;
+utils.partialMod = (module, inputArgs, filter = {}) => {
+  const partialFunc = (func, ...inputArgs) => {
+    return (...args) => {
+      return func(...inputArgs, ...args);
+    };
+  };
+  let output;
+  if (typeof module === 'function') {
+    output = partialFunc(module, ...inputArgs);
+  } else if (typeof module === 'object') {
+    output = {};
+    let entries = Object.entries(module);
+    let functions = entries.filter((entry) => typeof entry[1] === 'function');
+    let notFunctions = entries.filter(
+      (entry) => typeof entry[1] !== 'function'
+    );
+    for (let [k, func] of functions) {
+      if (typeof func !== 'function') throw new Error();
+      if (Object.hasOwn(filter, k)) {
+        output[k] = partialFunc(func, ...filter[k]);
       } else {
-        error = null;
+        output[k] = partialFunc(func, ...inputArgs);
       }
-      console.log('portcheck: close');
-      return resolve([status, error, connectionRefused]);
-    });
-    socket.connect({ port: port });
-  });
-};
+    }
+    Object.assign(output, Object.fromEntries(notFunctions));
+  } else {
+    throw new Error(`Type of input ${typeof module} is not supported.`);
+  }
 
-// let [status, error] = portCheck('tcp://localhost', 1935)
+  return output;
+};
 
 module.exports = utils;

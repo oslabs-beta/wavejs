@@ -22,7 +22,7 @@ const styles = {
   debug: chalk.bgCyanBright,
 };
 
-let currentLogLevel = LOG_LEVELS.debug;
+let currentLogLevel = LOG_LEVELS.info;
 
 const ignoreHeaders = ['user-agent', 'postman-token', 'host', 'connection'];
 

@@ -1,338 +1,307 @@
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const _ = require('lodash');
+const Logger = require('./logger');
+const { 
+  config, 
+  configValPipe,
+  configMappedPipe, 
+  configUnmappedPipe,
+  configFilter,
+ } = require('./ffmpegOptions');
 
-const FileController = require('./FileController');
-const streamStorage = require('./session');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
-//TODO: Add support for MPEG-DASH specific output
 
-const streamConfig = {
-  endpoint: 'live',
-  streamId: 'test',
-  userId: 'testUser',
-};
-
-const videoAudioConfig = {
-  videoBitrate: 1200,
-  h264Preset: ['-preset', 'superfast'],
-  videoCodec: 'libx264',
-  audioBitrate: '256k',
-  audioCodec: 'aac',
-  audioChannels: 2,
-  hlsTimeDuration: ['-hls_time', '1'],
-  hlsListSize: ['-hls_list_size', '1'],
-  protocols: ['hls'],
-};
+const loggerIdent = '[transmux]'
 
 class FFmpegServer {
   constructor(session, port) {
-    this.AVConfig = _.cloneDeep(videoAudioConfig);
-    this.streamConfig = _.cloneDeep(streamConfig);
     this.session = session;
-    this.streams = {};
+    this.stream = null;
     this.port = port;
+
+
+    this.avConfig = _.cloneDeep(config.av);
+    this.streamConfig = _.cloneDeep(config.stream);
+    this.globalConfig = _.cloneDeep(config.global);
+
+    
+    this.protocols = ['hls'];
+    this.setOutputProtocols();
   }
-  configureStream(updatedConfig) {
-    for (let key in updatedConfig) {
-      this.streamConfig[key] = updatedConfig[key];
+
+  setOutputProtocols(...args) {
+    const accepted = ['dash', 'hls'];
+    if (args.length > 0) {
+      this.protocols = args.filter(protocol => accepted.includes(protocol));
+    }
+    if (this.protocols.includes('hls')) {
+      this.hlsConfig = _.cloneDeep(config.hls);
+    }
+    if (this.protocols.includes('dash')) {
+      this.dashConfig = _.cloneDeep(config.dash);
+    }
+    
+  }
+  updateAVSettings(updatedConfig) {
+    try {
+      let newConfig = configFilter(updatedConfig);
+      newConfig = configValPipe(newConfig);
+      const acceptedKeys = Object.keys(config.av);
+      const wrongKeys = [];
+      Object.entries(newConfig).forEach(([key, val]) => {
+        if (acceptedKeys.includes(key)) this.avConfig[key] = val;
+        else {wrongKeys.push(key)}
+      });
+      if (wrongKeys.length > 0) Logger.error(`${loggerIdent} some incorrect av config keys provided; wave.js is ignoring them: ${wrongKeys.join(', ')}`);
+    } catch(err) {
+      Logger.error(`${loggerIdent} ${err.message}`)
     }
   }
-  configureAV(updatedConfig) {
-    for (let key in updatedConfig) {
-      this.AVConfig[key] = updatedConfig[key];
+  updateGlobalSettings(updatedConfig) {
+    try {
+      let newConfig = configFilter(updatedConfig);
+      newConfig = configValPipe(newConfig);
+      const acceptedKeys = Object.keys(config.global);
+      const wrongKeys = [];
+      Object.entries(newConfig).forEach(([key, val]) => {
+        if (acceptedKeys.includes(key)) this.globalConfig[key] = val;
+        else {wrongKeys.push(key)}
+      });
+      if (wrongKeys.length > 0) Logger.error(`${loggerIdent} some incorrect global config keys provided; wave.js is ignoring them: ${wrongKeys.join(', ')}`);      
+    } catch(err) {
+      Logger.error(`${loggerIdent} ${err.message}`)
     }
   }
-  listen() {
-    console.log(
-      `🎥 FFmpeg Server starting at rtmp://127.0.0.1:${this.port}`
-      //`🎥 FFmpeg Server starting at rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
-    );
-    this.session.initOutputStream(
-      this.streamConfig.streamId,
-      this.streamConfig.userId
-    );
-    if (this.AVConfig.protocols.includes('hls')) {
+  updateStreamSettings(updatedConfig) {
+    try {
+      let newConfig = configFilter(updatedConfig);
+      newConfig = configValPipe(newConfig);
+      const acceptedKeys = Object.keys(config.stream);
+      const wrongKeys = [];
+      Object.entries(newConfig).forEach(([key, val]) => {
+        if (acceptedKeys.includes(key)) this.streamConfig[key] = val;
+        else {wrongKeys.push(key)}
+      });
+      if (wrongKeys.length > 0) Logger.error(`${loggerIdent} some incorrect stream config keys provided; wave.js is ignoring them: ${wrongKeys.join(', ')}`);
+    } catch(err) {
+      Logger.error(`${loggerIdent} ${err.message}`)
+    }
+  }
+  updateProtocolSettings(protocol, updatedConfig) {
+    try {
+      let newConfig = configFilter(updatedConfig);
+      newConfig = configValPipe(newConfig);
+      let hlsWrongKeys = [];
+      let dashWrongKeys = [];
+      Object.entries(newConfig).forEach(([key, val]) => {
+        if (protocol === 'hls') {
+
+          const hlsAcceptedKeys = Object.keys(config.hls);
+          if (hlsAcceptedKeys.includes(key)) this.hlsConfig[key] = val;
+          else {hlsWrongKeys.push(key)}
+        }
+        if (protocol === 'dash') {
+          const dashAcceptedKeys = Object.keys(config.dash);
+          if (dashAcceptedKeys.includes(key)) this.dashConfig[key] = val;
+          else {dashWrongKeys.push(key)}
+        }
+      });
+      if (hlsWrongKeys.length > 0) Logger.error(`${loggerIdent} some incorrect hls config keys provided; wave.js is ignoring them: ${hlsWrongKeys.join(', ')}`);
+      if (dashWrongKeys.length > 0) Logger.error(`${loggerIdent} some incorrect dash config keys provided; wave.js is ignoring them: ${dashWrongKeys.join(', ')}`);
+
+    } catch(err) {
+      Logger.error(`${loggerIdent} ${err.message}`)
+      throw err
+    }
+  }
+  
+  initStream() {
+    this.stream = ffmpeg()
+      .input(`rtmp://127.0.0.1:${this.port}`, { timeout: 42300 })
+      .inputOptions([
+        '-rtmp_app', `${this.streamConfig.endpoint}/${this.streamConfig.streamId}`,
+        '-listen', 1
+      ])
+  }
+  addOutputFormatting() {
+    if (this.stream) {
+      let outputOptions = configMappedPipe(this.avConfig);
+      this.stream.addOptions(outputOptions);
+    } else {
+      Logger.error(`${loggerIdent} stream has not been initialized.`)
+    }
+  }
+  addHLS() {
+    if (this.stream){
       this.session.addOutputStream(this.streamConfig.streamId, 'hls');
       let HLSOutput = this.session.getOutputStreamPath(
-        this.streamConfig.streamId,
-        'hls'
-      );
-      this.streams.hls = this.buildHLSStream(HLSOutput);
-      this.streams.hls.run();
+        this.streamConfig.streamId, 'hls'
+        );
+      let outputOptions = configUnmappedPipe(this.hlsConfig);
+      this.stream.output(`${HLSOutput}/manifest.m3u8`)
+        .addOutputOptions(outputOptions)
+      this.addOutputFormatting();
+    } else {
+      Logger.error(`${loggerIdent} stream has not been initialized.`)
     }
-    if (this.AVConfig.protocols.includes('dash')) {
+  }
+  addMPD() {
+    if (this.stream){
       this.session.addOutputStream(this.streamConfig.streamId, 'dash');
       let dashOutput = this.session.getOutputStreamPath(
+        this.streamConfig.streamId, 'dash');
+      let outputOptions = configUnmappedPipe(this.dashConfig);
+      this.stream.output(`${dashOutput}/manifest.mpd`)
+        .addOutputOptions(outputOptions)
+      this.addOutputFormatting();
+    } else {
+      Logger.error(`${loggerIdent} stream has not been initialized.`)
+    }
+  }
+  setMediaDirectory(path) {
+    this.mediaRoot = path;
+  }
+  listen() {
+    Logger.info(
+      `🎥 Wave.js transmuxer starting at rtmp://127.0.0.1:${this.port}`
+      //`🎥 FFmpeg Server starting at rtmp://localhost/${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
+    );
+    try {
+      let mediaRoot = typeof this.mediaRoot === 'undefined' ? undefined : this.mediaRoot;
+
+      this.session.initOutputStream(
         this.streamConfig.streamId,
-        'dash'
+        this.streamConfig.userId,
+        mediaRoot
       );
-      this.streams.dash = this.buildMPDStream(dashOutput);
-      this.streams.dash.run();
+      this.initStream();
+      if (this.protocols.includes('hls')) this.addHLS();
+      if (this.protocols.includes('dash')) this.addMPD();
+      this.addEventListeners()
+      this.stream.run()
+    } catch(err) {
+      Logger.error(`${loggerIdent} ${err.message}`);
+      throw err;
     }
+    
   }
+
   close() {
-    if (this.streams.hls) {
       setTimeout(() => {
-        this.streams.hls.kill();
+        this.stream.kill();
       }, 10 * 1000);
-    }
-    if (this.streams.dash) {
-      setTimeout(() => {
-        this.streams.dash.kill();
-      }, 10 * 1000);
-    }
   }
-  buildMPDStream(outputPath) {
-    const fullOutput = `${outputPath}/manifest.mpd`;
-    const stream = ffmpeg()
-      .input(`rtmp://127.0.0.1:${this.port}`, { timeout: 42300 })
 
-      .inputOption(
-        '-rtmp_app',
-        `${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
-      )
-
-      // set video bitrate
-      .videoBitrate(this.AVConfig.videoBitrate)
-      // set h264 preset
-      .addOption(this.AVConfig.h264Preset[0], this.AVConfig.h264Preset[1])
-      // set target codec (this encodes to H.264)
-      .videoCodec(this.AVConfig.videoCodec)
-      // set audio bitrate
-      .audioBitrate(this.AVConfig.audioBitrate)
-      // set audio codec
-      .audioCodec(this.AVConfig.audioCodec)
-      // set number of audio channels
-      .audioChannels(this.AVConfig.audioChannels)
-      // set hls segments time (chunks are approximately 8 seconds long each)
-      .addOutputOptions([
-        '-seg_duration',
-        '8',
-        '-frag_duration',
-        '1',
-        '-ldash',
-        '1',
-        '-streaming',
-        '1',
-        '-init_seg_name init_$RepresentationID$.m4s',
-        '-media_seg_name chunk_$RepresentationID$_$Number%05d$.m4s',
-        '-f dash',
-      ])
-      .output(fullOutput)
-      .inputOptions('-listen 1')
+  addEventListeners() {
+      this.stream
       .on('start', (commandLine) => {
-        console.log('Spawned Ffmpeg with command: ' + commandLine);
+        Logger.debug(`${loggerIdent} spawned Ffmpeg with command: ${commandLine}`);
       })
+
       .on('codecData', function (data) {
-        console.log(
-          'Input is ' + data.audio + ' audio ' + 'with ' + data.video + ' video'
-        );
-      })
-      .on('progress', (progress) => {
-        console.log('Processing: ' + JSON.stringify(progress));
-      })
-      // event handler for end of stream
-      .on('end', async () => {
-        console.log('Success! Your live stream has been saved.');
-        this.session.setOutputStreamActive(
-          this.streamConfig.streamId,
-          'dash',
-          false
-        );
-        /*COMMENT LINES 141 to 145 in to delete files after stream has ended */
-        // await this.session.deleteOutputStream(
-        //   this.streamConfig.streamId,
-        //   'dash'
-        // );
-        //process.exit(0);
-      })
-      // error handling
-      .on('error', (err) => {
-        console.log('An error occurred: ' + err.message);
-        this.session.setOutputStreamActive(
-          this.streamConfig.streamId,
-          'dash',
-          false
-        );
-        process.exit(0);
-      })
-      .on('stderr', function (stderrLine) {
-        console.log('Stderr output: ' + stderrLine);
-      })
-      .on('connection', () => {
-        console.log('Someone Connected!');
-
-        this.session.setOutputStreamActive(
-          this.streamConfig.streamId,
-          'dash',
-          true
-        );
-      });
-    return stream;
-  }
-  buildHLSStream(outputPath) {
-    const fullOutput = `${outputPath}/manifest.m3u8`;
-    const stream = ffmpeg()
-      .input(`rtmp://127.0.0.1:${this.port}`, { timeout: 42300 })
-
-      .inputOption(
-        '-rtmp_app',
-        `${this.streamConfig.endpoint}/${this.streamConfig.streamId}`
-      )
-
-      // set video bitrate
-      .videoBitrate(this.AVConfig.videoBitrate)
-      // set h264 preset
-      .addOption(this.AVConfig.h264Preset[0], this.AVConfig.h264Preset[1])
-      // set target codec (this encodes to H.264)
-      .videoCodec(this.AVConfig.videoCodec)
-      // set audio bitrate
-      .audioBitrate(this.AVConfig.audioBitrate)
-      // set audio codec
-      .audioCodec(this.AVConfig.audioCodec)
-      // set number of audio channels
-      .audioChannels(this.AVConfig.audioChannels)
-      // set hls segments time (chunks are approximately 8 seconds long each)
-      .addOption(
-        `${this.AVConfig.hlsTimeDuration[0]} ${this.AVConfig.hlsTimeDuration[1]}`
-      )
-      // include all the segments in the list (don't remove old segments => for saving / on-demand playback)
-      .addOption(
-        `${this.AVConfig.hlsListSize[0]} ${this.AVConfig.hlsListSize[1]}`
-      )
-      .output(fullOutput)
-      .inputOptions('-listen 1')
-      .on('start', (commandLine) => {
-        console.log('Spawned Ffmpeg with command: ' + commandLine);
-      })
-      .on('codecData', function (data) {
-        console.log(
-          'Input is ' + data.audio + ' audio ' + 'with ' + data.video + ' video'
-        );
-      })
-      // .on('progress', (progress) =>{
+          Logger.debug(
+            `${loggerIdent} Input is ${data.audio} audio with ${data.video}video`);})
+            
+      // this breaks the socket for some reason, don't enable
+      // .on('progress', function (progress) {
       //   console.log('Processing: ' + JSON.stringify(progress));
-
       // })
       // event handler for end of stream
       .on('end', async () => {
-        console.log('Success! Your live stream has been saved.');
-        this.session.setOutputStreamActive(
-          this.streamConfig.streamId,
-          'hls',
-          false
-        );
-        /*COMMENT LINES 225 to 228 in to delete files after stream has ended */
-        // await this.session.deleteOutputStream(
-        //   this.streamConfig.streamId,
-        //   'hls'
-        // );
-        //process.exit(0);
-      })
+          Logger.debug(`${loggerIdent} stream ended.`);
+          this.session.setOutputStreamActive(
+            this.streamConfig.streamId, 'dash', false);
+          this.dash = false;
+          //*Uncomment to delete files after stream has ended */
+          // await this.session.deleteOutputStream(
+          //   this.streamConfig.streamId,
+          //   'dash'
+          // );
+            this.session.setOutputStreamActive(
+              this.streamConfig.streamId, 'hls', false);
+          this.hls = false;
+          //*Uncomment to delete files after stream has ended */
+          // await this.session.deleteOutputStream(
+          //   this.streamConfig.streamId,
+          //   'hls'
+          // );
+          }
+          //process.exit(0);
+        )
       // error handling
       .on('error', (err) => {
-        console.log('An error occurred: ' + err.message);
-        this.session.setOutputStreamActive(
-          this.streamConfig.streamId,
-          'hls',
-          false
-        );
-        process.exit(0);
-      })
-      // .on('stderr', function (stderrLine) {
-      //   console.log('Stderr output: ' + stderrLine);
-      // })
-      .on('connection', () => {
-        console.log('Someone Connected!');
-
-        this.session.setOutputStreamActive(
-          this.streamConfig.streamId,
-          'hls',
-          true
-        );
-      });
-    return stream;
+         Logger.error(`${loggerIdent} An error occurred: ${err.message}`);
+          this.session.setOutputStreamActive(
+            this.streamConfig.streamId,
+            'dash',
+            false
+          );
+          this.session.setOutputStreamActive(
+            this.streamConfig.streamId,
+            'hls',
+            false
+          );
+          this.dash = false;
+          this.hls = false;
+          process.exit(0);
+        })
+        .on('stderr', function (stderrLine) {
+          if (stderrLine.includes('frame=')) {
+            const results = readStdErr(stderrLine);
+            Logger.info(`${loggerIdent} progress: frame ${results.frame} processed, total duration ${results.time} `)
+          }
+          //Logger.debug(`${loggerIdent} stderr output: ${stderrLine}`);
+        })
+        .on('connection', () => {
+            Logger.info(`${loggerIdent} connection established`);
+            if (this.hls) {
+              this.session.setOutputStreamActive(
+              this.streamConfig.streamId,
+              'hls',
+              true);
+            }
+            if (this.dash) {
+              this.session.setOutputStreamActive(
+                this.streamConfig.streamId,
+                'dash',
+                true);
+            }
+          });
   }
+  clone () {
+    const clone = new FFmpegServer()
+    clone.session = this.session;
+    clone.stream = this.stream;
+    clone.port = this.port;
+    clone.avConfig = this.avConfig;
+    clone.streamConfig = this.streamConfig;
+    clone.globalConfig = this.globalConfig;
+    clone.protocols = this.protocols;
+    if (this.mediaRoot){
+      clone.mediaRoot = this.mediaRoot;
+    }
+    if (this.hlsConfig) {
+      clone.hlsConfig = this.hlsConfig;
+    }
+    if (this.dashConfig) {
+      clone.dashConfig = this.dashConfig;
+    }
+    return clone;
+  }
+
+}
+
+const readStdErr = (stdErrLine) => {
+  const results = [...stdErrLine.match(/[a-z]*=[ ]*[a-zA-Z0-9:\./]*/g)]
+  let output = results.reduce((acc, entry) => {
+    let [k, v] = entry.split('=')
+    acc[k.trim()] = v.trim();
+    return acc;
+  }, {});
+  return output;
 }
 
 module.exports = FFmpegServer;
-
-// const buildStream = (streamId, endpoint, session) => {
-//   //const stream = ffmpeg(`rtmp://localhost/live`, { timeout: 432000 })
-//   const stream = ffmpeg(`rtmp://localhost/${endpoint}/${streamId}`, {
-//     timeout: 432000,
-//   })
-//     // set video bitrate
-//     .videoBitrate(1200)
-//     // set h264 preset
-//     .addOption('-preset', 'superfast')
-//     // set target codec (this encodes to H.264)
-//     .videoCodec('libx264')
-//     // set audio bitrate
-//     .audioBitrate('256k')
-//     // set audio codec
-//     .audioCodec('aac')
-//     // set number of audio channels
-//     .audioChannels(2)
-//     // set hls segments time (chunks are approximately 8 seconds long each)
-//     .addOption('-hls_time 8')
-//     // include all the segments in the list (don't remove old segments => for saving / on-demand playback)
-//     .addOption('-hls_list_size 0')
-//     //.addOption('-hls_playlist_type', 'event')
-
-//     .output(buildHLSPlaylistPath(streamId))
-
-//     .inputOptions('-listen 1')
-
-//     .on('start', (commandLine) => {
-//       console.log('Spawned Ffmpeg with command: ' + commandLine);
-//     })
-//     .on('codecData', function (data) {
-//       console.log(
-//         'Input is ' + data.audio + ' audio ' + 'with ' + data.video + ' video'
-//       );
-//     })
-//     .on('progress', function (progress) {
-//       console.log('Processing: ' + JSON.stringify(progress));
-//     })
-//     // event handler for end of stream
-//     .on('end', function () {
-//       console.log('Success! Your live stream has been saved.');
-//       session.setActive(streamId, false);
-//       process.exit(0);
-//     })
-//     // error handling
-//     .on('error', function (err) {
-//       console.log('An error occurred: ' + err.message);
-//       session.setActive(streamId, false);
-//       process.exit(0);
-//     })
-//     .on('stderr', function (stderrLine) {
-//       console.log('Stderr output: ' + stderrLine);
-//     })
-//     .on('connection', () => {
-//       console.log('Someone Connected!');
-//       session.setActive(streamId, true);
-//     });
-//   return stream;
-// };
-
-// // The listen command makes FFmpeg act as an RTMP server
-// //stream._currentInput.options('-listen', 1);
-
-// // Saves the file locally
-// //stream.save('../videoFiles/test.m3u8');
-
-// const ffmpegServer = (session, streamId, endpoint) => {
-//   console.log(
-//     `🎥 FFmpeg Server starting at rtmp://localhost/${endpoint}/${streamId}`
-//   );
-//   buildHLSDir(streamId);
-//   const stream = buildStream(streamId, endpoint, session);
-//   session.addStream(streamId);
-//   stream.run();
-// };
-// module.exports = ffmpegServer;
