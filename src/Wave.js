@@ -12,7 +12,7 @@ class WaveJS {
     this.outputServer = new OutputServer(this.session);
     this.ffmpegServer = new FFMpegServer(this.session);
     this.rtmpGateway = new RTMPGateway(this.session);
-    //this.rtmpServer = new RTMPServer()
+    this.updateMediaDir(process.cwd());
   }
   updateAVSettings(updatedSettings) {
     this.ffmpegServer.updateAVSettings(updatedSettings);
