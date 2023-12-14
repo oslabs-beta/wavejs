@@ -1,6 +1,6 @@
 {
   "name": "@wave.js/wave.js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Easy streaming input/output server.",
   "main": "./src/index.js",
   "author": "Wave.js Team",
