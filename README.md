@@ -69,7 +69,7 @@ Would you like to get involved? To contribute to wave.js:
 
 - Fork the project repo and make a contribution to the code
 
-  1. For the project repo
+  1. Fork the project repo
   2. Create a feature branch
   3. Commit your changes
   4. Push to your branch
